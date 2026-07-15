@@ -1,0 +1,61 @@
+{
+  "company": "VoltEdge Electronics",
+  "products": [
+    {
+      "sku": "VE-PB-PRO",
+      "name": "PulseBuds Pro",
+      "product_type": "wireless_earbuds",
+      "price_usd": 129.99,
+      "warranty_months": 12,
+      "support_themes": ["pairing", "battery", "warranty_claims"]
+    },
+    {
+      "sku": "VE-BB-300",
+      "name": "BoomBar 300",
+      "product_type": "portable_speaker",
+      "price_usd": 89.99,
+      "warranty_months": 12,
+      "support_themes": ["damaged_shipment", "returns"]
+    },
+    {
+      "sku": "VE-HL-HUB",
+      "name": "HomeLink Hub",
+      "product_type": "smart_home_hub",
+      "price_usd": 149.99,
+      "warranty_months": 24,
+      "support_themes": ["setup", "compatibility", "firmware"]
+    },
+    {
+      "sku": "VE-SR-AX2",
+      "name": "SwiftRoute AX2",
+      "product_type": "wifi_router",
+      "price_usd": 179.99,
+      "warranty_months": 24,
+      "support_themes": ["returns", "troubleshooting"]
+    },
+    {
+      "sku": "VE-CC-4K",
+      "name": "ClearCam 4K",
+      "product_type": "webcam",
+      "price_usd": 99.99,
+      "warranty_months": 12,
+      "support_themes": ["order_status", "compatibility"]
+    },
+    {
+      "sku": "VE-TC-87",
+      "name": "TypeCraft 87",
+      "product_type": "mechanical_keyboard",
+      "price_usd": 119.99,
+      "warranty_months": 24,
+      "support_themes": ["refunds", "missing_parts"]
+    },
+    {
+      "sku": "VE-PD-DUO",
+      "name": "PowerDock Duo",
+      "product_type": "usb_c_dock",
+      "price_usd": 159.99,
+      "warranty_months": 12,
+      "support_themes": ["compatibility", "warranty"]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "orders": [
+    {
+      "order_id": "VE-1001",
+      "customer_id": "cust-maya-001",
+      "status": "shipped",
+      "tracking_number": "VETRACK-90821",
+      "items": [
+        {"sku": "VE-CC-4K", "qty": 1, "line_total_usd": 99.99}
+      ],
+      "shipping_address": {
+        "name": "Maya Chen",
+        "line1": "500 Synthetic Ave",
+        "city": "Austin",
+        "region": "TX",
+        "postal": "78701",
+        "country": "US"
+      },
+      "created_at": "2026-07-01T15:22:00Z",
+      "refund_eligible": false,
+      "refund_amount_usd": 0
+    },
+    {
+      "order_id": "VE-1002",
+      "customer_id": "cust-jordan-002",
+      "status": "delivered",
+      "tracking_number": "VETRACK-90855",
+      "items": [
+        {"sku": "VE-BB-300", "qty": 1, "line_total_usd": 89.99}
+      ],
+      "shipping_address": {
+        "name": "Jordan Blake",
+        "line1": "12 Demo Street",
+        "city": "Denver",
+        "region": "CO",
+        "postal": "80202",
+        "country": "US"
+      },
+      "created_at": "2026-06-20T11:05:00Z",
+      "refund_eligible": true,
+      "refund_amount_usd": 89.99
+    },
+    {
+      "order_id": "VE-1003",
+      "customer_id": "cust-priya-003",
+      "status": "delivered",
+      "tracking_number": "VETRACK-90901",
+      "items": [
+        {"sku": "VE-PD-DUO", "qty": 1, "line_total_usd": 159.99}
+      ],
+      "shipping_address": {
+        "name": "Priya Nair",
+        "line1": "88 Portfolio Blvd",
+        "city": "Seattle",
+        "region": "WA",
+        "postal": "98101",
+        "country": "US"
+      },
+      "created_at": "2026-06-28T09:40:00Z",
+      "refund_eligible": true,
+      "refund_amount_usd": 159.99
+    }
+  ]
+}

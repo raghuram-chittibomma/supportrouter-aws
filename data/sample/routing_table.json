@@ -1,0 +1,42 @@
+{
+  "routing_table_version": "seed-v0.1.0",
+  "policy": "Seeded manually for v0.1; later produced from eval scorecards (ADR-003).",
+  "routes": {
+    "faq_policy": {
+      "model_id": "amazon.nova-micro",
+      "quality_score": 0.82,
+      "cost_per_1k_tokens": 0.000035,
+      "p95_latency_ms": 900
+    },
+    "order_status": {
+      "model_id": "amazon.nova-micro",
+      "quality_score": 0.88,
+      "cost_per_1k_tokens": 0.000035,
+      "p95_latency_ms": 800
+    },
+    "return_request": {
+      "model_id": "amazon.nova-lite",
+      "quality_score": 0.86,
+      "cost_per_1k_tokens": 0.00006,
+      "p95_latency_ms": 1100
+    },
+    "refund_request": {
+      "model_id": "anthropic.claude-haiku",
+      "quality_score": 0.9,
+      "cost_per_1k_tokens": 0.00025,
+      "p95_latency_ms": 1200
+    },
+    "product_question": {
+      "model_id": "amazon.nova-lite",
+      "quality_score": 0.85,
+      "cost_per_1k_tokens": 0.00006,
+      "p95_latency_ms": 1000
+    },
+    "unknown": {
+      "model_id": "anthropic.claude-haiku",
+      "quality_score": 0.7,
+      "cost_per_1k_tokens": 0.00025,
+      "p95_latency_ms": 1300
+    }
+  }
+}

@@ -1,0 +1,21 @@
+name: Open Question
+description: Track an assumption or unresolved decision
+title: "[Question] "
+labels: ["type:question", "flag:open-question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact if unresolved
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed default

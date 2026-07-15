@@ -1,0 +1,50 @@
+name: Task
+description: Implementation or chore task with acceptance criteria
+title: "[Task] "
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What needs to be done and why
+    validations:
+      required: true
+  - type: textarea
+    id: ac
+    attributes:
+      label: Acceptance criteria
+      description: Checklist of testable outcomes
+      value: |
+        - [ ] 
+    validations:
+      required: true
+  - type: dropdown
+    id: dor
+    attributes:
+      label: Definition of Ready
+      options:
+        - Ready (AC clear, labels set, deps known)
+        - Not ready
+    validations:
+      required: true
+  - type: input
+    id: deps
+    attributes:
+      label: Dependencies
+      placeholder: "#12, ADR-001"
+  - type: dropdown
+    id: eval_gate
+    attributes:
+      label: Eval gate
+      options:
+        - None
+        - Required
+    validations:
+      required: true
+  - type: input
+    id: cost_note
+    attributes:
+      label: Cost note placeholder
+      description: Fill with measured cost or "not measured" at Done
+      value: not measured

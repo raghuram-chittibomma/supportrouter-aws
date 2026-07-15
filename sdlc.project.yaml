@@ -1,0 +1,45 @@
+display_name: SupportRouter
+repo_root: .
+program: supportrouter-aws
+
+docs:
+  orchestrator_brief: docs/00_project/AI_ORCHESTRATOR_BRIEF.md
+  project_charter: docs/00_project/PROJECT_CHARTER.md
+  product_brief: docs/00_project/PRODUCT_BRIEF.md
+  architecture: docs/01_architecture/ARCHITECTURE.md
+  data_model: docs/01_architecture/DATA_MODEL.md
+  test_strategy: docs/02_testing/TEST_STRATEGY.md
+  eval_strategy: docs/02_testing/EVAL_STRATEGY.md
+  runbook: docs/03_operations/RUNBOOK.md
+  release_notes: docs/03_operations/RELEASE_NOTES.md
+
+paths:
+  source: src/
+  tests: tests/
+  evals: evals/
+  sample_data: data/sample/
+  knowledge_base: data/knowledge_base/
+  infra: infra/
+  tools: tools/
+  # Intentionally unused: build-time skills live only in enterprise-sdlc catalog.
+  project_skills: .skills-unused/
+
+milestone:
+  current: v0.1 Eval-Routed Agent Demo
+
+extensions:
+  - Classifier
+  - ModelRouter
+  - LangGraphAgent
+  - KnowledgeBaseRetriever
+  - OrderTools
+  - Guardrails
+  - ConfidenceScorer
+  - HITLDecision
+  - EvalPlane
+  - Observability
+
+domain:
+  product_context: Synthetic AI customer support agent for fictional VoltEdge Electronics (DTC consumer electronics)
+  aws_region: us-east-1
+  refund_hitl_threshold_usd: 100
