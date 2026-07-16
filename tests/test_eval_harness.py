@@ -90,6 +90,52 @@ def test_completed_judge_cannot_make_local_stub_candidate_pass():
     assert all(result["pass"] is None for result in scorecard["results"])
 
 
+def test_incomplete_judge_pass_state_keeps_live_summary_unknown():
+    class ExecutedCandidate(LocalStubCandidateRunner):
+        execution_mode = "test_live"
+
+        def run(self, scenario, requested_model_id):
+            result = super().run(scenario, requested_model_id)
+            result.update(
+                {
+                    "candidate_executed": True,
+                    "execution_mode": self.execution_mode,
+                    "usage": {"input_tokens": 1, "output_tokens": 1},
+                    "cost_usd": 0.001,
+                }
+            )
+            return result
+
+    class IncompleteJudge:
+        judge_version = "test-judge"
+
+        def evaluate(self, scenario, model_output):
+            return {
+                "status": "completed",
+                "judge_version": self.judge_version,
+                "model_id": "test-judge-model",
+                "scores": {
+                    "faithfulness": None,
+                    "helpfulness": None,
+                    "policy_adherence": None,
+                },
+                "pass": None,
+                "reason": "missing scores",
+            }
+
+    scorecard = run_harness(
+        candidate_model_ids=["logical:test"],
+        task_types={"faq_policy"},
+        runner=ExecutedCandidate(),
+        judge=IncompleteJudge(),
+    )
+
+    assert scorecard["summary"]["candidates_executed"] is True
+    assert scorecard["summary"]["judge_completed"] is True
+    assert scorecard["summary"]["overall_pass"] is None
+    assert all(result["pass"] is None for result in scorecard["results"])
+
+
 def test_programmatic_metrics_require_all_adr_checks():
     scenario = {
         "task_type": "faq_policy",

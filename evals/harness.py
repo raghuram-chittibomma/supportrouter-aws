@@ -193,6 +193,7 @@ def run_harness(
     programmatic_passes = sum(1 for result in results if result["programmatic"]["pass"])
     candidates_executed = all(result["candidate_executed"] for result in results)
     judge_ran = all(result["judge"]["status"] == "completed" for result in results)
+    pass_states_complete = all(result["pass"] is not None for result in results)
     cost_measured = all(result["cost_usd"] is not None for result in results)
     incomplete_reasons: list[str] = []
     if not candidates_executed:
@@ -223,8 +224,8 @@ def run_harness(
             "programmatic_pass_rate": programmatic_passes / len(results),
             "judge_completed": judge_ran,
             "overall_pass": (
-                all(result["pass"] for result in results)
-                if candidates_executed and judge_ran
+                all(result["pass"] is True for result in results)
+                if candidates_executed and judge_ran and pass_states_complete
                 else None
             ),
         },
