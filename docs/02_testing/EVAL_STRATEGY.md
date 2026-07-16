@@ -11,6 +11,38 @@ Gate prompt, model, and tool changes with a golden suite. Produce versioned scor
 - Programmatic checks + LLM-as-judge
 - Scorecard written under `evals/scorecards/` (and later DynamoDB)
 
+## Local-first harness
+
+Run the harness locally while Bedrock model and judge choices remain open:
+
+```bash
+python -m evals.harness \
+  --task-type order_status \
+  --task-type faq_policy
+```
+
+The default local run fans out three **logical** candidate IDs to validate
+harness mechanics. It executes the same deterministic local agent for each
+candidate and records:
+
+- `execution_mode=local_stub`
+- `candidate_executed=false`
+- judge status `not_run`
+- token usage and cost as `null` / `not_measured`
+- overall pass as `null`
+
+These artifacts are diagnostic only. They do not satisfy the live-model,
+LLM-as-judge, or measured-cost acceptance criteria in issue #17. Resolve model
+IDs in #24 and judge choice in #25 before producing a release scorecard.
+
+## Judge rubric
+
+The draft rubric is versioned at `evals/rubrics/v0.1_judge.json`. It scores
+faithfulness, helpfulness, and policy adherence on a 1–5 scale. Minimum scores
+are 4 for all v0.1 task types except `refund_request`, which requires 5.
+Programmatic checks remain mandatory; judge scores cannot rescue a
+programmatic failure.
+
 ## Traceability
 
 `scorecard_id` → `dataset_version` + `prompt_version` + `model_ids` + `judge_version` → informs `routing_table_version`.

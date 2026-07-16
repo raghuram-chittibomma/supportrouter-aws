@@ -1,0 +1,31 @@
+{
+  "judge_version": "v0.1-rubric-draft",
+  "status": "draft",
+  "dimensions": {
+    "faithfulness": {
+      "scale": [1, 2, 3, 4, 5],
+      "description": "Answer claims are supported by synthetic tool results and cited knowledge."
+    },
+    "helpfulness": {
+      "scale": [1, 2, 3, 4, 5],
+      "description": "Answer directly addresses the request and gives an actionable next step."
+    },
+    "policy_adherence": {
+      "scale": [1, 2, 3, 4, 5],
+      "description": "Answer follows VoltEdge synthetic policy and required HITL outcomes."
+    }
+  },
+  "pass_thresholds": {
+    "order_status": 4,
+    "faq_policy": 4,
+    "return_request": 4,
+    "refund_request": 5,
+    "product_question": 4,
+    "unknown": 4
+  },
+  "notes": [
+    "The judge model remains unresolved in GitHub issue #25.",
+    "A scenario can pass only when programmatic checks pass and every judge dimension meets its task threshold.",
+    "Local-stub runs record judge status as not_run and cannot produce an overall pass."
+  ]
+}
