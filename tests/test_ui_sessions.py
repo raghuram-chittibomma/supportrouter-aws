@@ -2,7 +2,13 @@
 
 from supportrouter.graph import run_agent
 from supportrouter.sessions import clear_sessions, decide_hitl, list_sessions, save_session
-from supportrouter.ui import format_customer_reply, refresh_queue, supervisor_decide
+from supportrouter.ui import (
+    _session_id_from_queue_data,
+    format_customer_reply,
+    on_queue_select,
+    refresh_queue,
+    supervisor_decide,
+)
 
 
 def setup_function():
@@ -34,7 +40,27 @@ def test_format_customer_reply_includes_status():
 
 def test_supervisor_decide_ui_helper():
     result = save_session(run_agent("I want a refund for order VE-1003"))
-    detail, rows = supervisor_decide(result["session_id"], "reject", "no")
+    detail, rows, cleared = supervisor_decide(result["session_id"], "reject", "no")
     assert "rejected" in detail
     assert rows == []
+    assert cleared == ""
     assert refresh_queue() == []
+
+
+def test_session_id_from_queue_row():
+    rows = [["sid-1", "pending_approval", "refund_request", "159.99", "over", "msg"]]
+    assert _session_id_from_queue_data(rows, 0) == "sid-1"
+
+
+def test_on_queue_select_fills_session_and_detail():
+    result = save_session(run_agent("I want a refund for order VE-1003"))
+    sid = result["session_id"]
+
+    class _Evt:
+        index = (0, 0)
+        value = sid
+
+    filled_sid, detail = on_queue_select(_Evt())
+    assert filled_sid == sid
+    assert sid in detail
+    assert "pending_approval" in detail

@@ -15,6 +15,7 @@ python -m supportrouter.cli "Where is my order #VE-1001?"
 ```bash
 python -m supportrouter.ui
 # http://127.0.0.1:7860 — Customer chat + Supervisor HITL tabs
+# Supervisor: click a HITL queue row to select session_id, then Approve/Reject
 ```
 
 Supervisor reviews `pending_approval` / `escalated` sessions in the UI (or via CLI helpers). In-memory queue lives only for that local process.
