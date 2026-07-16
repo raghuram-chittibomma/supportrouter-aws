@@ -1,0 +1,104 @@
+{
+  "dataset_version": "v0.1-golden",
+  "notes": [
+    "Golden suite for programmatic checks against the local stub agent (no Bedrock).",
+    "Anti-leakage: never copy scenario input text into runtime prompts or few-shot examples.",
+    "expected_citations are required doc_id presence checks (subset), not exclusive rank assertions.",
+    "expected_tools lists callable support tools only; expected_tool_error captures pre-call validation failures.",
+    "Cost: not measured."
+  ],
+  "scenarios": [
+    {
+      "id": "ord-status-001",
+      "task_type": "order_status",
+      "input": "Where is my order VE-1001 right now?",
+      "expected_tools": ["get_order_status"],
+      "expected_citations": [],
+      "expected_outcome": "resolved"
+    },
+    {
+      "id": "ord-status-002",
+      "task_type": "order_status",
+      "input": "Can you give me the tracking status for order VE-1001?",
+      "expected_tools": ["get_order_status"],
+      "expected_citations": [],
+      "expected_outcome": "resolved"
+    },
+    {
+      "id": "ord-status-missing-id-001",
+      "task_type": "order_status",
+      "input": "Can you check tracking for my package?",
+      "expected_tools": [],
+      "expected_tool_error": "missing_order_id",
+      "expected_citations": [],
+      "expected_outcome": "escalated"
+    },
+    {
+      "id": "ord-status-unknown-001",
+      "task_type": "order_status",
+      "input": "Where is order VE-9999?",
+      "expected_tools": ["get_order_status"],
+      "expected_citations": [],
+      "expected_outcome": "escalated"
+    },
+    {
+      "id": "faq-policy-001",
+      "task_type": "faq_policy",
+      "input": "What is the VoltEdge policy for unused items still in original packaging within 30 days?",
+      "expected_tools": [],
+      "expected_citations": ["pol-returns-001"],
+      "expected_answer_facts": ["30 days", "unused", "original packaging"],
+      "expected_outcome": "resolved"
+    },
+    {
+      "id": "faq-policy-002",
+      "task_type": "faq_policy",
+      "input": "Under VoltEdge policy, when is supervisor approval required for amounts above $100?",
+      "expected_tools": [],
+      "expected_citations": ["pol-returns-001"],
+      "expected_answer_facts": ["above $100 USD", "supervisor approval"],
+      "expected_outcome": "resolved"
+    },
+    {
+      "id": "product-q-001",
+      "task_type": "product_question",
+      "input": "Will the PowerDock Duo work with my USB-C laptop for video output?",
+      "expected_tools": [],
+      "expected_citations": ["faq-powerdock-001"],
+      "expected_answer_facts": ["DisplayPort Alt Mode", "video over USB-C"],
+      "expected_outcome": "resolved"
+    },
+    {
+      "id": "refund-hitl-001",
+      "task_type": "refund_request",
+      "input": "I want my money back for order VE-1003",
+      "expected_tools": ["issue_refund"],
+      "expected_citations": [],
+      "expected_outcome": "pending_approval"
+    },
+    {
+      "id": "refund-auto-001",
+      "task_type": "refund_request",
+      "input": "Please issue a refund on order VE-1002",
+      "expected_tools": ["issue_refund"],
+      "expected_citations": [],
+      "expected_outcome": "resolved"
+    },
+    {
+      "id": "return-001",
+      "task_type": "return_request",
+      "input": "How do I start a return for order VE-1002?",
+      "expected_tools": ["initiate_return"],
+      "expected_citations": [],
+      "expected_outcome": "resolved"
+    },
+    {
+      "id": "unknown-low-conf-001",
+      "task_type": "unknown",
+      "input": "blorp zizzle qux",
+      "expected_tools": [],
+      "expected_citations": [],
+      "expected_outcome": "escalated"
+    }
+  ]
+}
