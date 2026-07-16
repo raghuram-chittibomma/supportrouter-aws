@@ -4,7 +4,7 @@ Eval-driven AI customer support agent for **VoltEdge Electronics** (fictional DT
 
 > **Measured metrics only.** The README will cite autonomous resolution rate, cost per conversation, caching savings, and eval pass rates only after scorecard artifacts exist. Until then: **not measured**.
 
-## Quick start (local first slice)
+## Quick start (local LangGraph agent)
 
 ```bash
 python -m venv .venv

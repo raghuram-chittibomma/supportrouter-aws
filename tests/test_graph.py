@@ -32,6 +32,22 @@ def test_refund_above_threshold_pending_approval():
     assert "100" in result["hitl_reason"]
 
 
+def test_refund_below_threshold_resolves():
+    # VE-1002 BoomBar 300 refund_amount_usd = 89.99
+    result = run_agent("Please refund order VE-1002")
+    assert result["task_type"] == "refund_request"
+    assert result["status"] == "resolved"
+    assert result["refund_amount_usd"] == 89.99
+
+
+def test_return_request_initiates_rma():
+    result = run_agent("I need to return order VE-1002")
+    assert result["task_type"] == "return_request"
+    assert result["tool_calls"][0]["name"] == "initiate_return"
+    assert result["tool_calls"][0]["result"]["ok"] is True
+    assert result["status"] == "resolved"
+
+
 def test_product_question_uses_retrieve():
     result = run_agent("Will this dock work with my laptop? PowerDock Duo compatibility")
     assert result["task_type"] == "product_question"
