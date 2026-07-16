@@ -8,7 +8,7 @@ from pathlib import Path
 
 import aws_cdk as cdk
 import pytest
-from aws_cdk.assertions import Match, Template
+from aws_cdk.assertions import Template
 
 ROOT = Path(__file__).resolve().parents[1]
 INFRA = ROOT / "infra"
@@ -36,6 +36,9 @@ def test_cost_budget_twenty_dollars(env: cdk.Environment) -> None:
                 "BudgetLimit": {"Amount": 20, "Unit": "USD"},
                 "BudgetType": "COST",
                 "TimeUnit": "MONTHLY",
+                "CostFilters": {
+                    "TagKeyValue": ["user:Project$supportrouter"],
+                },
             }
         },
     )

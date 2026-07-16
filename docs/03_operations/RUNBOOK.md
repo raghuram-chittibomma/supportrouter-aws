@@ -79,17 +79,12 @@ On-demand eval (preferred while dormant):
 python -m evals.harness --dataset evals/datasets/v0.1.jsonl
 ```
 
-## Eval harness
-
-```bash
-python -m evals.harness --dataset evals/datasets/v0.1.jsonl
-```
-
 (Module lands with issue #17; command is the target interface.)
 
 ## Cost guardrails
 
-- AWS Budget alert: **$20/month** (CDK `CostGuardrails` stack)
+- AWS Budget alert: **$20/month**, filtered by tag `Project=supportrouter` (ADR-008)
+- Set a real alert inbox: `cdk deploy -c budget_alert_email=you@example.com` (default is a placeholder)
 - CloudWatch: ≤ **3** dashboards; log retention **14 days** (7–14 allowed)
 - Vector store: **S3 Vectors only** (ADR-007) — never OpenSearch Serverless
 

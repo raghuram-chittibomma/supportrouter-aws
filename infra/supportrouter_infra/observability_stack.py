@@ -36,6 +36,7 @@ class ObservabilityStack(cdk.Stack):
         )
 
         # Cap: at most MAX_DASHBOARDS (3). Token amplification noted in EVAL_STRATEGY.
+        dashboards = []
         runtime_dash = cloudwatch.Dashboard(
             self,
             "RuntimeDashboard",
@@ -53,6 +54,7 @@ class ObservabilityStack(cdk.Stack):
                 height=4,
             )
         )
+        dashboards.append(runtime_dash)
 
         cost_dash = cloudwatch.Dashboard(
             self,
@@ -70,6 +72,7 @@ class ObservabilityStack(cdk.Stack):
                 height=4,
             )
         )
+        dashboards.append(cost_dash)
 
         eval_dash = cloudwatch.Dashboard(
             self,
@@ -86,10 +89,12 @@ class ObservabilityStack(cdk.Stack):
                 height=3,
             )
         )
+        dashboards.append(eval_dash)
 
-        if MAX_DASHBOARDS < 3:
-            raise ValueError("MAX_DASHBOARDS unexpectedly below dashboard count")
-
+        if len(dashboards) > MAX_DASHBOARDS:
+            raise ValueError(
+                f"Dashboard count {len(dashboards)} exceeds MAX_DASHBOARDS={MAX_DASHBOARDS}"
+            )
         cdk.CfnOutput(self, "AgentLogGroupName", value=agent_logs.log_group_name)
         cdk.CfnOutput(self, "EvalLogGroupName", value=eval_logs.log_group_name)
         cdk.CfnOutput(self, "DashboardCount", value="3")

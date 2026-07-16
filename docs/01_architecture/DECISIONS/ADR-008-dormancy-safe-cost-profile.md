@@ -12,7 +12,7 @@ SupportRouter must have near-zero idle cost between demo periods. Almost the who
 
 1. **Lifecycle:** Prefer `cdk destroy` between demo periods and redeploy on demand. Provide `scripts/teardown` + `scripts/reseed` so cold-start takes minutes.
 2. **Eval schedule:** CDK context flag `enable_reeval_schedule` defaults to **`false`**. When false, **do not create** an EventBridge rule (not merely disable it). Manual/on-demand eval remains available.
-3. **Budget:** Provision an AWS Budgets alert at **$20/month** via CDK (`CfnBudget`) for the SupportRouter account/project filter.
+3. **Budget:** Provision an AWS Budgets alert at **$20/month** via CDK (`CfnBudget`), filtered by cost allocation tag **`Project=supportrouter`** (resources must carry that tag). On a single-purpose demo account this still approximates project spend; replace the placeholder notification email via CDK context `budget_alert_email` before relying on alerts.
 4. **CloudWatch:** At most **3** dashboards. Log group retention **7–14 days** (default **14**), never “never expire” for SupportRouter log groups.
 5. **Network:** SupportRouter stacks create **no custom VPC and no NAT Gateway**.
 6. **Reseed / KB ingestion:** On-demand only (script after deploy). No standing ingestion EventBridge schedule while dormant.

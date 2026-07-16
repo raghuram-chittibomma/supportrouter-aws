@@ -13,6 +13,11 @@ class CostGuardrailsStack(cdk.Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        alert_email = (
+            self.node.try_get_context("budget_alert_email")
+            or "supportrouter-budget@example.com"
+        )
+
         budgets.CfnBudget(
             self,
             "MonthlyBudget",
@@ -24,7 +29,10 @@ class CostGuardrailsStack(cdk.Stack):
                     unit="USD",
                 ),
                 budget_name=f"{PROJECT_NAME}-monthly-{MONTHLY_BUDGET_USD}",
-                cost_filters=None,
+                # Tag filter: resources tagged Project=supportrouter (ADR-008)
+                cost_filters={
+                    "TagKeyValue": [f"user:Project${PROJECT_NAME}"],
+                },
             ),
             notifications_with_subscribers=[
                 budgets.CfnBudget.NotificationWithSubscribersProperty(
@@ -36,7 +44,7 @@ class CostGuardrailsStack(cdk.Stack):
                     ),
                     subscribers=[
                         budgets.CfnBudget.SubscriberProperty(
-                            address="supportrouter-budget@example.com",
+                            address=str(alert_email),
                             subscription_type="EMAIL",
                         )
                     ],
@@ -46,3 +54,10 @@ class CostGuardrailsStack(cdk.Stack):
 
         cdk.Tags.of(self).add("Project", PROJECT_NAME)
         cdk.Tags.of(self).add("CostCenter", "dormancy-safe")
+
+        cdk.CfnOutput(self, "BudgetAlertEmail", value=str(alert_email))
+        cdk.CfnOutput(
+            self,
+            "BudgetTagFilter",
+            value=f"user:Project${PROJECT_NAME}",
+        )
