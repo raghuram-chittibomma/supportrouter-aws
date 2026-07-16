@@ -8,4 +8,6 @@ def test_handle_message_order_demo():
     assert result["task_type"] == "order_status"
     assert result["model_id"] == "amazon.nova-micro"
     assert result["routing_table_version"] == "seed-v0.1.0"
+    assert result["status"] == "resolved"
     assert "session_id" in result
+    assert "answer" in result

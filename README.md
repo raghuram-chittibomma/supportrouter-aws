@@ -12,7 +12,11 @@ python -m venv .venv
 pip install -e ".[dev]"
 pytest
 python -m supportrouter.cli "Where is my order #VE-1001?"
+# → order_status, seeded model, local tool lookup, status resolved
 ```
+
+Runtime path (local stubs, no Bedrock yet): validate → classify → route → retrieve|tools → draft → confidence → HITL.
+
 
 ## Docs
 
