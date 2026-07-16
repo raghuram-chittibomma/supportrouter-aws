@@ -61,97 +61,118 @@ def _queue_rows() -> list[list[str]]:
     return rows
 
 
-def refresh_queue() -> list[list[str]]:
-    return _queue_rows()
+def _session_choices() -> list[str]:
+    return [row[0] for row in _queue_rows() if row and row[0]]
+
+
+def refresh_queue():
+    """Return queue table + dropdown choices/value for Gradio updates."""
+    import gradio as gr
+
+    rows = _queue_rows()
+    choices = [r[0] for r in rows if r and r[0]]
+    value = choices[0] if choices else None
+    return (
+        rows,
+        gr.update(choices=choices, value=value),
+        value or "",
+        load_session_detail(value or ""),
+    )
 
 
 def load_session_detail(session_id: str) -> str:
     sid = (session_id or "").strip()
     if not sid:
-        return "Select a session from the queue."
+        return "Select a session from the dropdown or click a queue row."
     matches = [s for s in list_sessions() if s.get("session_id") == sid]
     if not matches:
         return f"Session not found: {sid}"
     return json.dumps(matches[0], indent=2)
 
 
-def _row_index_from_select(evt: Any) -> int | None:
+def on_session_dropdown(session_id: str) -> tuple[str, str]:
+    sid = (session_id or "").strip()
+    return sid, load_session_detail(sid)
+
+
+def session_id_from_select_event(evt: Any) -> str:
+    """Extract session_id from Gradio SelectData (Dataframe click)."""
     if evt is None:
-        return None
-    index = getattr(evt, "index", None)
-    if isinstance(index, (list, tuple)) and index:
-        return int(index[0])
-    if isinstance(index, int):
-        return index
-    return None
-
-
-def _session_id_from_queue_data(data: Any, row_idx: int) -> str:
-    """Extract session_id (column 0) from Gradio dataframe value at row_idx."""
-    if data is None or row_idx < 0:
         return ""
-    # pandas DataFrame
-    if hasattr(data, "iloc"):
-        try:
-            return str(data.iloc[row_idx, 0])
-        except Exception:
-            return ""
-    # list of lists / list of dicts
-    if isinstance(data, list) and row_idx < len(data):
-        row = data[row_idx]
-        if isinstance(row, dict):
-            return str(row.get("session_id") or next(iter(row.values()), "") or "")
-        if isinstance(row, (list, tuple)) and row:
-            return str(row[0])
-    # dict-of-columns (Gradio sometimes)
-    if isinstance(data, dict):
-        col = data.get("session_id") or data.get("data")
-        if isinstance(col, list) and row_idx < len(col):
-            cell = col[row_idx]
-            if isinstance(cell, (list, tuple)) and cell:
-                return str(cell[0])
-            return str(cell)
+    # Preferred: full row payload (Gradio Dataframe SelectData.row_value)
+    row_value = getattr(evt, "row_value", None)
+    if isinstance(row_value, (list, tuple)) and row_value:
+        return str(row_value[0]).strip()
+    # Fallback: row index into live queue
+    index = getattr(evt, "index", None)
+    row_idx: int | None = None
+    if isinstance(index, (list, tuple)) and index:
+        row_idx = int(index[0])
+    elif isinstance(index, int):
+        row_idx = index
+    if row_idx is not None:
+        rows = _queue_rows()
+        if 0 <= row_idx < len(rows) and rows[row_idx]:
+            return str(rows[row_idx][0]).strip()
+    # Fallback: clicked cell is session_id column
+    value = getattr(evt, "value", None)
+    if value is not None and isinstance(index, (list, tuple)) and len(index) > 1 and index[1] == 0:
+        return str(value).strip()
+    if value is not None and isinstance(value, str) and len(value) >= 8:
+        # UUID-ish cell click
+        return value.strip()
     return ""
 
 
-def on_queue_select(evt: Any) -> tuple[str, str]:
-    """When supervisor clicks a HITL queue row, fill session_id and show detail."""
-    row_idx = _row_index_from_select(evt)
-    if row_idx is None:
-        return "", "Select a session from the queue."
-    rows = _queue_rows()
-    sid = ""
-    if 0 <= row_idx < len(rows):
-        sid = str(rows[row_idx][0]).strip()
+def on_queue_select(evt: Any) -> tuple[str, str, Any]:
+    """Dataframe click → fill dropdown + session_id + detail."""
+    import gradio as gr
+
+    sid = session_id_from_select_event(evt)
     if not sid:
-        # Fallback: cell value when user clicked the session_id column
-        value = getattr(evt, "value", None)
-        if value is not None and getattr(evt, "index", None) is not None:
-            index = evt.index
-            col = index[1] if isinstance(index, (list, tuple)) and len(index) > 1 else 0
-            if col == 0:
-                sid = str(value).strip()
-    if not sid:
-        return "", "Could not read session_id from selected row."
-    return sid, load_session_detail(sid)
+        return (
+            "",
+            "Could not read session_id from click. Use the dropdown instead.",
+            gr.update(),
+        )
+    return sid, load_session_detail(sid), gr.update(value=sid)
 
 
 def supervisor_decide(
     session_id: str, decision: str, note: str
-) -> tuple[str, list[list[str]], str]:
+) -> tuple[str, list[list[str]], Any, str]:
+    import gradio as gr
+
     sid = (session_id or "").strip()
     if not sid:
+        rows = _queue_rows()
+        choices = [r[0] for r in rows if r and r[0]]
         return (
-            "Select a session from the HITL queue (click a row), then Approve or Reject.",
-            _queue_rows(),
+            "Select a session (dropdown or click a queue row), then Approve or Reject.",
+            rows,
+            gr.update(choices=choices, value=None),
             "",
         )
     try:
         updated = decide_hitl(sid, decision, note=note or "")
     except (KeyError, ValueError) as exc:
-        return f"Error: {exc}", _queue_rows(), sid
-    # Clear selection after decision; queue refresh drops resolved items.
-    return json.dumps(updated, indent=2), _queue_rows(), ""
+        rows = _queue_rows()
+        choices = [r[0] for r in rows if r and r[0]]
+        return (
+            f"Error: {exc}",
+            rows,
+            gr.update(choices=choices, value=sid),
+            sid,
+        )
+    rows = _queue_rows()
+    choices = [r[0] for r in rows if r and r[0]]
+    next_value = choices[0] if choices else None
+    return (
+        json.dumps(updated, indent=2),
+        rows,
+        gr.update(choices=choices, value=next_value),
+        next_value or "",
+    )
 
 
 def build_ui():
@@ -177,8 +198,21 @@ def build_ui():
 
         with gr.Tab("Supervisor (HITL)"):
             gr.Markdown(
-                "Queue shows `pending_approval` and `escalated` sessions. "
-                "**Click a row** to select it for Approve / Reject."
+                "1. Click **Refresh queue** after customer messages that need HITL.  \n"
+                "2. **Choose a session** from the dropdown (or click a table cell).  \n"
+                "3. **Approve** or **Reject**."
+            )
+            refresh = gr.Button("Refresh queue", variant="secondary")
+            session_dd = gr.Dropdown(
+                label="Select session for Approve / Reject",
+                choices=[],
+                interactive=True,
+                allow_custom_value=False,
+            )
+            session_id = gr.Textbox(
+                label="Selected session_id",
+                interactive=False,
+                placeholder="Pick a session above",
             )
             queue = gr.Dataframe(
                 headers=[
@@ -190,15 +224,9 @@ def build_ui():
                     "message",
                 ],
                 datatype=["str"] * 6,
-                interactive=True,
-                wrap=True,
-                label="HITL queue (click a row to select)",
-            )
-            refresh = gr.Button("Refresh queue")
-            session_id = gr.Textbox(
-                label="Selected session_id",
                 interactive=False,
-                placeholder="Click a queue row to select",
+                wrap=True,
+                label="HITL queue (click a cell to select that row)",
             )
             detail = gr.Code(label="Session detail", language="json")
             note = gr.Textbox(label="Supervisor note", placeholder="Optional note")
@@ -206,21 +234,37 @@ def build_ui():
                 approve = gr.Button("Approve", variant="primary")
                 reject = gr.Button("Reject", variant="stop")
 
-            refresh.click(refresh_queue, outputs=queue)
-            demo.load(refresh_queue, outputs=queue)
-            queue.select(
-                on_queue_select,
+            refresh.click(
+                refresh_queue,
+                outputs=[queue, session_dd, session_id, detail],
+            )
+            demo.load(
+                refresh_queue,
+                outputs=[queue, session_dd, session_id, detail],
+            )
+            session_dd.change(
+                on_session_dropdown,
+                inputs=[session_dd],
                 outputs=[session_id, detail],
+            )
+
+            # Type hint gr.SelectData is required for Gradio to inject event payload.
+            def _on_table_select(evt: gr.SelectData):
+                return on_queue_select(evt)
+
+            queue.select(
+                _on_table_select,
+                outputs=[session_id, detail, session_dd],
             )
             approve.click(
                 lambda sid, n: supervisor_decide(sid, "approve", n),
                 inputs=[session_id, note],
-                outputs=[detail, queue, session_id],
+                outputs=[detail, queue, session_dd, session_id],
             )
             reject.click(
                 lambda sid, n: supervisor_decide(sid, "reject", n),
                 inputs=[session_id, note],
-                outputs=[detail, queue, session_id],
+                outputs=[detail, queue, session_dd, session_id],
             )
 
     return demo

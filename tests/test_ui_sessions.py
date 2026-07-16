@@ -3,10 +3,11 @@
 from supportrouter.graph import run_agent
 from supportrouter.sessions import clear_sessions, decide_hitl, list_sessions, save_session
 from supportrouter.ui import (
-    _session_id_from_queue_data,
     format_customer_reply,
     on_queue_select,
+    on_session_dropdown,
     refresh_queue,
+    session_id_from_select_event,
     supervisor_decide,
 )
 
@@ -40,16 +41,21 @@ def test_format_customer_reply_includes_status():
 
 def test_supervisor_decide_ui_helper():
     result = save_session(run_agent("I want a refund for order VE-1003"))
-    detail, rows, cleared = supervisor_decide(result["session_id"], "reject", "no")
+    detail, rows, _dd, cleared = supervisor_decide(result["session_id"], "reject", "no")
     assert "rejected" in detail
     assert rows == []
     assert cleared == ""
-    assert refresh_queue() == []
 
 
-def test_session_id_from_queue_row():
-    rows = [["sid-1", "pending_approval", "refund_request", "159.99", "over", "msg"]]
-    assert _session_id_from_queue_data(rows, 0) == "sid-1"
+def test_session_id_from_row_value():
+    sid = "abc-123-session"
+
+    class _Evt:
+        row_value = [sid, "pending_approval", "refund_request"]
+        index = (0, 1)
+        value = "pending_approval"
+
+    assert session_id_from_select_event(_Evt()) == sid
 
 
 def test_on_queue_select_fills_session_and_detail():
@@ -57,10 +63,27 @@ def test_on_queue_select_fills_session_and_detail():
     sid = result["session_id"]
 
     class _Evt:
+        row_value = [sid, "pending_approval", "refund_request", "159.99", "over", "msg"]
         index = (0, 0)
         value = sid
 
-    filled_sid, detail = on_queue_select(_Evt())
+    filled_sid, detail, _dd = on_queue_select(_Evt())
     assert filled_sid == sid
     assert sid in detail
     assert "pending_approval" in detail
+
+
+def test_dropdown_selection():
+    result = save_session(run_agent("I want a refund for order VE-1003"))
+    sid, detail = on_session_dropdown(result["session_id"])
+    assert sid == result["session_id"]
+    assert "pending_approval" in detail
+
+
+def test_refresh_queue_updates_choices():
+    save_session(run_agent("I want a refund for order VE-1003"))
+    rows, dd_update, sid, detail = refresh_queue()
+    assert len(rows) == 1
+    assert sid == rows[0][0]
+    assert "pending_approval" in detail
+    assert dd_update is not None
