@@ -6,6 +6,8 @@ import argparse
 import json
 from typing import Any
 
+import gradio as gr
+
 from supportrouter.graph import run_agent
 from supportrouter.sessions import decide_hitl, list_sessions, save_session
 
@@ -61,38 +63,19 @@ def _queue_rows() -> list[list[str]]:
     return rows
 
 
-def _session_choices() -> list[str]:
-    return [row[0] for row in _queue_rows() if row and row[0]]
-
-
-def refresh_queue():
-    """Return queue table + dropdown choices/value for Gradio updates."""
-    import gradio as gr
-
-    rows = _queue_rows()
-    choices = [r[0] for r in rows if r and r[0]]
-    value = choices[0] if choices else None
-    return (
-        rows,
-        gr.update(choices=choices, value=value),
-        value or "",
-        load_session_detail(value or ""),
-    )
+def refresh_queue() -> tuple[list[list[str]], str, str]:
+    """Refresh the queue and clear any stale row selection."""
+    return _queue_rows(), "", "Click a queue row to select a session."
 
 
 def load_session_detail(session_id: str) -> str:
     sid = (session_id or "").strip()
     if not sid:
-        return "Select a session from the dropdown or click a queue row."
+        return "Click a queue row to select a session."
     matches = [s for s in list_sessions() if s.get("session_id") == sid]
     if not matches:
         return f"Session not found: {sid}"
     return json.dumps(matches[0], indent=2)
-
-
-def on_session_dropdown(session_id: str) -> tuple[str, str]:
-    sid = (session_id or "").strip()
-    return sid, load_session_detail(sid)
 
 
 def session_id_from_select_event(evt: Any) -> str:
@@ -124,60 +107,36 @@ def session_id_from_select_event(evt: Any) -> str:
     return ""
 
 
-def on_queue_select(evt: Any) -> tuple[str, str, Any]:
-    """Dataframe click → fill dropdown + session_id + detail."""
-    import gradio as gr
-
+def on_queue_select(evt: gr.SelectData) -> tuple[str, str]:
+    """Populate the selected session field from any clicked queue cell."""
     sid = session_id_from_select_event(evt)
     if not sid:
-        return (
-            "",
-            "Could not read session_id from click. Use the dropdown instead.",
-            gr.update(),
-        )
-    return sid, load_session_detail(sid), gr.update(value=sid)
+        return "", "Could not read session_id from the selected row."
+    return sid, load_session_detail(sid)
 
 
 def supervisor_decide(
     session_id: str, decision: str, note: str
-) -> tuple[str, list[list[str]], Any, str]:
-    import gradio as gr
-
+) -> tuple[str, list[list[str]], str]:
     sid = (session_id or "").strip()
     if not sid:
-        rows = _queue_rows()
-        choices = [r[0] for r in rows if r and r[0]]
         return (
-            "Select a session (dropdown or click a queue row), then Approve or Reject.",
-            rows,
-            gr.update(choices=choices, value=None),
+            "Click a queue row, then Approve or Reject.",
+            _queue_rows(),
             "",
         )
     try:
         updated = decide_hitl(sid, decision, note=note or "")
     except (KeyError, ValueError) as exc:
-        rows = _queue_rows()
-        choices = [r[0] for r in rows if r and r[0]]
-        return (
-            f"Error: {exc}",
-            rows,
-            gr.update(choices=choices, value=sid),
-            sid,
-        )
-    rows = _queue_rows()
-    choices = [r[0] for r in rows if r and r[0]]
-    next_value = choices[0] if choices else None
+        return f"Error: {exc}", _queue_rows(), sid
     return (
         json.dumps(updated, indent=2),
-        rows,
-        gr.update(choices=choices, value=next_value),
-        next_value or "",
+        _queue_rows(),
+        "",
     )
 
 
 def build_ui():
-    import gradio as gr
-
     with gr.Blocks(title="SupportRouter — VoltEdge Demo") as demo:
         gr.Markdown(
             """
@@ -199,21 +158,10 @@ def build_ui():
         with gr.Tab("Supervisor (HITL)"):
             gr.Markdown(
                 "1. Click **Refresh queue** after customer messages that need HITL.  \n"
-                "2. **Choose a session** from the dropdown (or click a table cell).  \n"
+                "2. **Click any cell in a queue row** to select that session.  \n"
                 "3. **Approve** or **Reject**."
             )
             refresh = gr.Button("Refresh queue", variant="secondary")
-            session_dd = gr.Dropdown(
-                label="Select session for Approve / Reject",
-                choices=[],
-                interactive=True,
-                allow_custom_value=False,
-            )
-            session_id = gr.Textbox(
-                label="Selected session_id",
-                interactive=False,
-                placeholder="Pick a session above",
-            )
             queue = gr.Dataframe(
                 headers=[
                     "session_id",
@@ -228,6 +176,11 @@ def build_ui():
                 wrap=True,
                 label="HITL queue (click a cell to select that row)",
             )
+            session_id = gr.Textbox(
+                label="Selected session_id for Approve / Reject",
+                interactive=False,
+                placeholder="Click a queue row to select",
+            )
             detail = gr.Code(label="Session detail", language="json")
             note = gr.Textbox(label="Supervisor note", placeholder="Optional note")
             with gr.Row():
@@ -236,35 +189,25 @@ def build_ui():
 
             refresh.click(
                 refresh_queue,
-                outputs=[queue, session_dd, session_id, detail],
+                outputs=[queue, session_id, detail],
             )
             demo.load(
                 refresh_queue,
-                outputs=[queue, session_dd, session_id, detail],
+                outputs=[queue, session_id, detail],
             )
-            session_dd.change(
-                on_session_dropdown,
-                inputs=[session_dd],
-                outputs=[session_id, detail],
-            )
-
-            # Type hint gr.SelectData is required for Gradio to inject event payload.
-            def _on_table_select(evt: gr.SelectData):
-                return on_queue_select(evt)
-
             queue.select(
-                _on_table_select,
-                outputs=[session_id, detail, session_dd],
+                on_queue_select,
+                outputs=[session_id, detail],
             )
             approve.click(
                 lambda sid, n: supervisor_decide(sid, "approve", n),
                 inputs=[session_id, note],
-                outputs=[detail, queue, session_dd, session_id],
+                outputs=[detail, queue, session_id],
             )
             reject.click(
                 lambda sid, n: supervisor_decide(sid, "reject", n),
                 inputs=[session_id, note],
-                outputs=[detail, queue, session_dd, session_id],
+                outputs=[detail, queue, session_id],
             )
 
     return demo
