@@ -10,6 +10,15 @@ pytest
 python -m supportrouter.cli "Where is my order #VE-1001?"
 ```
 
+### Thin demo UI
+
+```bash
+python -m supportrouter.ui
+# http://127.0.0.1:7860 — Customer chat + Supervisor HITL tabs
+```
+
+Supervisor reviews `pending_approval` / `escalated` sessions in the UI (or via CLI helpers). In-memory queue lives only for that local process.
+
 ## AWS deploy
 
 ```bash
@@ -90,4 +99,4 @@ python -m evals.harness --dataset evals/datasets/v0.1.jsonl
 
 ## Incident / escalation (product)
 
-Supervisor reviews `pending_approval` / `escalated` sessions (CLI in v0.1).
+Supervisor reviews `pending_approval` / `escalated` sessions via the thin Gradio demo UI (`python -m supportrouter.ui`) or CLI in v0.1.
