@@ -34,7 +34,7 @@ def customer_chat(message: str, history: list) -> tuple[list, str]:
     text = (message or "").strip()
     if not text:
         return history, ""
-    result = save_session(run_agent(text))
+    result = run_agent(text)
     result["message"] = text
     save_session(result)
     reply = format_customer_reply(result)
