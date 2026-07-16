@@ -28,3 +28,4 @@ Thumbs.db
 
 # Scorecard noise (keep committed examples under evals/scorecards/.gitkeep)
 *.log
+evals/scorecards/*.json

@@ -86,10 +86,16 @@ cdk deploy --all -c enable_reeval_schedule=false
 On-demand eval (preferred while dormant):
 
 ```bash
-python -m evals.harness --dataset evals/datasets/v0.1.jsonl
+python -m evals.harness \
+  --dataset evals/datasets/v0.1_golden.json \
+  --task-type order_status \
+  --task-type faq_policy
 ```
 
-(Module lands with issue #17; command is the target interface.)
+The local harness writes a scorecard under `evals/scorecards/`, but clearly
+marks candidate execution, judge metrics, token usage, cost, and overall pass
+as incomplete. Do not use local-stub scorecards for routing or release claims.
+Live Bedrock completion remains gated by issues #24 and #25.
 
 ## Cost guardrails
 
