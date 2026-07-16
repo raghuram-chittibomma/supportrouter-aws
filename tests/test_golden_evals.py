@@ -2,20 +2,29 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
+import re
 
 import pytest
 
-from evals.loader import GOLDEN_DATASET_PATH, golden_scenario_inputs, load_dataset
+from evals.loader import (
+    ALLOWED_TOOLS,
+    GOLDEN_DATASET_PATH,
+    golden_scenario_inputs,
+    load_dataset,
+    validate_dataset,
+)
 from supportrouter.graph import run_agent
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = ROOT / "src"
 KB_ROOT = ROOT / "data" / "knowledge_base"
+DOC_ID_RE = re.compile(r"^doc_id:\s*(\S+)\s*$", re.MULTILINE)
 
 
 @pytest.fixture(scope="module")
-def golden():
+def golden() -> dict:
     return load_dataset(GOLDEN_DATASET_PATH)
 
 
@@ -39,13 +48,26 @@ def test_golden_includes_edge_cases(golden):
 
 
 def test_expected_citations_exist_in_kb(golden):
-    known_docs = {p.stem for p in KB_ROOT.glob("*.md")}
-    # Also accept doc_id from front matter when stem differs (none today).
+    known_docs = _knowledge_docs()
     for scenario in golden["scenarios"]:
         for doc_id in scenario["expected_citations"]:
-            assert doc_id in known_docs or any(
-                doc_id in p.read_text(encoding="utf-8") for p in KB_ROOT.glob("*.md")
-            ), f"{scenario['id']}: citation {doc_id} not found in knowledge_base"
+            assert doc_id in known_docs, (
+                f"{scenario['id']}: citation {doc_id} not found in knowledge_base"
+            )
+
+
+def test_cited_docs_contain_expected_answer_facts(golden):
+    """Ground truth facts provide a semantic check independent of retrieval output."""
+    known_docs = _knowledge_docs()
+    for scenario in golden["scenarios"]:
+        facts = scenario.get("expected_answer_facts", [])
+        cited_text = "\n".join(
+            known_docs[doc_id] for doc_id in scenario["expected_citations"]
+        ).lower()
+        for fact in facts:
+            assert fact.lower() in cited_text, (
+                f"{scenario['id']}: fact {fact!r} absent from expected citations"
+            )
 
 
 @pytest.mark.parametrize(
@@ -60,7 +82,11 @@ def test_golden_programmatic_local_agent(scenario):
     assert result["status"] == scenario["expected_outcome"], scenario["id"]
 
     tool_names = [t["name"] for t in (result.get("tool_calls") or [])]
-    assert tool_names == scenario["expected_tools"], scenario["id"]
+    callable_tools = [name for name in tool_names if name in ALLOWED_TOOLS]
+    tool_errors = [name for name in tool_names if name not in ALLOWED_TOOLS]
+    assert callable_tools == scenario["expected_tools"], scenario["id"]
+    expected_error = scenario.get("expected_tool_error")
+    assert tool_errors == ([expected_error] if expected_error else []), scenario["id"]
 
     citation_ids = {c["doc_id"] for c in (result.get("citations") or [])}
     for doc_id in scenario["expected_citations"]:
@@ -75,3 +101,68 @@ def test_golden_inputs_not_leaked_into_runtime_src():
     corpus = "\n".join(p.read_text(encoding="utf-8") for p in src_files)
     for text in inputs:
         assert text not in corpus, f"golden input leaked into src/: {text!r}"
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("task_type", "order_stats", "task_type"),
+        ("expected_tools", [None], "non-empty strings"),
+        ("expected_tools", ["send_email"], "unsupported expected_tools"),
+        ("expected_citations", [""], "non-empty strings"),
+        ("expected_outcome", "complete", "expected_outcome"),
+    ],
+)
+def test_dataset_validation_rejects_invalid_ground_truth(field, value, message):
+    data = _minimal_dataset()
+    data["scenarios"][0][field] = value
+    with pytest.raises(ValueError, match=message):
+        validate_dataset(data)
+
+
+def test_dataset_validation_rejects_unknown_scenario_fields():
+    data = _minimal_dataset()
+    data["scenarios"][0]["expected_tool"] = "get_order_status"
+    with pytest.raises(ValueError, match="unknown keys"):
+        validate_dataset(data)
+
+
+def test_dataset_validation_rejects_duplicate_ids():
+    data = _minimal_dataset()
+    data["scenarios"].append(deepcopy(data["scenarios"][0]))
+    with pytest.raises(ValueError, match="duplicate scenario id"):
+        validate_dataset(data)
+
+
+def test_dataset_validation_separates_tool_errors_from_callable_tools():
+    data = _minimal_dataset()
+    scenario = data["scenarios"][0]
+    scenario["expected_tool_error"] = "missing_order_id"
+    with pytest.raises(ValueError, match="cannot be combined"):
+        validate_dataset(data)
+
+
+def _knowledge_docs() -> dict[str, str]:
+    documents: dict[str, str] = {}
+    for path in KB_ROOT.glob("*.md"):
+        text = path.read_text(encoding="utf-8")
+        match = DOC_ID_RE.search(text)
+        assert match, f"{path}: missing doc_id front matter"
+        documents[match.group(1)] = text
+    return documents
+
+
+def _minimal_dataset() -> dict:
+    return {
+        "dataset_version": "test",
+        "scenarios": [
+            {
+                "id": "valid-001",
+                "task_type": "order_status",
+                "input": "Synthetic test input",
+                "expected_tools": ["get_order_status"],
+                "expected_citations": [],
+                "expected_outcome": "resolved",
+            }
+        ],
+    }
