@@ -15,6 +15,17 @@ python -m supportrouter.cli "Where is my order #VE-1001?"
 # → order_status, seeded model, local tool lookup, status resolved
 ```
 
+### Thin demo UI (Gradio)
+
+```bash
+pip install -e ".[ui]"   # or .[dev] which includes Gradio
+python -m supportrouter.ui
+# open http://127.0.0.1:7860
+# Tabs: Customer chat | Supervisor (HITL)
+```
+
+Local-only process — **no always-on AWS UI hosting**. Cost note: not measured.
+
 Runtime path (local stubs, no Bedrock yet): validate → classify → route → retrieve|tools → draft → confidence → HITL.
 
 

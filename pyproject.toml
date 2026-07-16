@@ -13,14 +13,19 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ui = [
+    "gradio>=4.0",
+]
 dev = [
     "pytest>=8.0",
     "aws-cdk-lib>=2.200.0,<3",
     "constructs>=10.0.0,<11",
+    "gradio>=4.0",
 ]
 
 [project.scripts]
 supportrouter = "supportrouter.cli:main"
+supportrouter-ui = "supportrouter.ui:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
