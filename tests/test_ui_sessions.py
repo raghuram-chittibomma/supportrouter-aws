@@ -5,7 +5,6 @@ from supportrouter.sessions import clear_sessions, decide_hitl, list_sessions, s
 from supportrouter.ui import (
     format_customer_reply,
     on_queue_select,
-    on_session_dropdown,
     refresh_queue,
     session_id_from_select_event,
     supervisor_decide,
@@ -41,7 +40,7 @@ def test_format_customer_reply_includes_status():
 
 def test_supervisor_decide_ui_helper():
     result = save_session(run_agent("I want a refund for order VE-1003"))
-    detail, rows, _dd, cleared = supervisor_decide(result["session_id"], "reject", "no")
+    detail, rows, cleared = supervisor_decide(result["session_id"], "reject", "no")
     assert "rejected" in detail
     assert rows == []
     assert cleared == ""
@@ -67,23 +66,15 @@ def test_on_queue_select_fills_session_and_detail():
         index = (0, 0)
         value = sid
 
-    filled_sid, detail, _dd = on_queue_select(_Evt())
+    filled_sid, detail = on_queue_select(_Evt())
     assert filled_sid == sid
     assert sid in detail
     assert "pending_approval" in detail
 
 
-def test_dropdown_selection():
-    result = save_session(run_agent("I want a refund for order VE-1003"))
-    sid, detail = on_session_dropdown(result["session_id"])
-    assert sid == result["session_id"]
-    assert "pending_approval" in detail
-
-
-def test_refresh_queue_updates_choices():
+def test_refresh_queue_clears_stale_selection():
     save_session(run_agent("I want a refund for order VE-1003"))
-    rows, dd_update, sid, detail = refresh_queue()
+    rows, sid, detail = refresh_queue()
     assert len(rows) == 1
-    assert sid == rows[0][0]
-    assert "pending_approval" in detail
-    assert dd_update is not None
+    assert sid == ""
+    assert "Click a queue row" in detail
