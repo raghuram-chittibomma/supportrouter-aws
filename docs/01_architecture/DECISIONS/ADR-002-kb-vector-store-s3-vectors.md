@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+**Superseded by [ADR-007](ADR-007-s3-vectors-over-opensearch.md)**
 
 ## Context
 
@@ -17,3 +17,7 @@ Use **Amazon S3 Vectors** as the vector store behind Bedrock Knowledge Bases for
 - Low idle cost; suitable for tiny synthetic corpora.
 - Sub-second retrieval is acceptable for demo latency targets.
 - If hybrid search or higher QPS is needed later, supersede with OpenSearch via a new ADR.
+
+## Supersession
+
+Retained for history. Operational guardrails (anti-AOSS quick-create, estimated idle-cost comparison, cleanup procedure) live in ADR-007.

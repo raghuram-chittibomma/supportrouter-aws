@@ -2,14 +2,14 @@
 
 Canonical releases: GitHub Releases. This file mirrors **measured** results only.
 
-## Unreleased / v0.1 (in progress)
+## Unreleased / dormancy-safe revision
 
 | Metric | Value | Evidence |
 |--------|-------|----------|
 | Autonomous resolution rate | not measured | — |
-| Cost per conversation (with routing) | not measured | — |
-| Cost per conversation (without routing) | not measured | — |
+| Cost per conversation | not measured | — |
 | Prompt-caching savings | not measured | — |
-| Eval pass rate by model/task | not measured | — |
+| Idle cost (dormant month) | estimated ~$0–2 | ADR-008 assumptions; stacks destroyed |
+| OpenSearch Serverless | forbidden | ADR-007; synth tests assert no AOSS |
 
-First slice delivers local CLI classify+route only (no Bedrock calls).
+Infra: CDK stacks for CostGuardrails, KnowledgeBase (S3 Vectors), Observability (≤3 dashboards, 14d logs), EvalSchedule (rule only if `enable_reeval_schedule=true`).

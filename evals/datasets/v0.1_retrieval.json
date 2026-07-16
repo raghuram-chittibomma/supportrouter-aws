@@ -1,0 +1,22 @@
+{
+  "dataset_version": "v0.1-retrieval-draft",
+  "notes": "Re-run after SupportRouter-KnowledgeBase deploy + scripts/reseed.py (ADR-007). Local keyword retrieve is interim.",
+  "scenarios": [
+    {
+      "id": "faq-returns-001",
+      "task_type": "faq_policy",
+      "input": "What is the VoltEdge return policy and refund approval threshold?",
+      "expected_tools": [],
+      "expected_citations": ["pol-returns-001"],
+      "expected_outcome": "resolved"
+    },
+    {
+      "id": "product-dock-001",
+      "task_type": "product_question",
+      "input": "Will the PowerDock Duo work with my USB-C laptop for video?",
+      "expected_tools": [],
+      "expected_citations": ["faq-powerdock-001"],
+      "expected_outcome": "resolved"
+    }
+  ]
+}

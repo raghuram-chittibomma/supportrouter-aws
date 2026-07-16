@@ -10,9 +10,10 @@ dist/
 .coverage
 htmlcov/
 
-# CDK
+# CDK / JSII
 infra/cdk.out/
 infra/.cdk.staging/
+*.jsii*
 
 # IDE / OS
 .idea/
