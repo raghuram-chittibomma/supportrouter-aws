@@ -4,7 +4,7 @@ Eval-driven AI customer support agent for **VoltEdge Electronics** (fictional DT
 
 > **Measured metrics only.** The README will cite autonomous resolution rate, cost per conversation, caching savings, and eval pass rates only after scorecard artifacts exist. Until then: **not measured**.
 
-## Quick start (local first slice)
+## Quick start (local LangGraph agent)
 
 ```bash
 python -m venv .venv
@@ -12,7 +12,11 @@ python -m venv .venv
 pip install -e ".[dev]"
 pytest
 python -m supportrouter.cli "Where is my order #VE-1001?"
+# → order_status, seeded model, local tool lookup, status resolved
 ```
+
+Runtime path (local stubs, no Bedrock yet): validate → classify → route → retrieve|tools → draft → confidence → HITL.
+
 
 ## Docs
 
