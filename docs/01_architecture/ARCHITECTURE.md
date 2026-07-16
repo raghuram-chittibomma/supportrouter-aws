@@ -11,7 +11,7 @@ API Gateway → Support Lambda (LangGraph)
   → validate / Guardrails (input)
   → task-type classifier
   → model router (DynamoDB routing table)
-  → retrieve (Bedrock Knowledge Bases) and/or tools (order / return / refund Lambdas)
+  → retrieve (Bedrock Knowledge Bases over S3 Vectors) and/or tools (order / return / refund Lambdas)
   → draft response
   → Guardrails (output)
   → confidence score
@@ -20,34 +20,53 @@ API Gateway → Support Lambda (LangGraph)
   → session + cost trace (DynamoDB / CloudWatch)
 ```
 
+**Vector store:** Amazon **S3 Vectors** behind Bedrock Knowledge Bases ([ADR-007](DECISIONS/ADR-007-s3-vectors-over-opensearch.md)). OpenSearch Serverless is forbidden for SupportRouter (idle OCU floor).
+
 ## Eval plane
 
 ```
-EventBridge (schedule/manual) → Step Functions Map
+EventBridge (OPTIONAL schedule; default OFF) or manual → Step Functions Map
   → run golden scenarios × candidate models
   → programmatic metrics + LLM-as-judge
   → EvalScorecards
   → (m2+) routing policy generator → RoutingTable version
 ```
 
+CDK context `enable_reeval_schedule` defaults to `false` — **no EventBridge rule is created** when false ([ADR-008](DECISIONS/ADR-008-dormancy-safe-cost-profile.md)).
+
+## Cost profile
+
+Near-zero idle cost is a hard requirement. App is used during build and intermittently for demos.
+
+| Mode | Expected cost | Assumptions |
+|------|---------------|-------------|
+| **Dormant month** | ~$0–2 (estimated) | `cdk destroy` completed; no AOSS; no eval schedule; no NAT/VPC |
+| **Active demo month** | Low tens of USD; Budget alert **$20/mo** | Intermittent Lambda/API Gateway/Bedrock; tiny KB on S3 Vectors; manual evals; `cache_enabled=false` until measured |
+
+**Always-on landmines to avoid:** OpenSearch Serverless, NAT Gateways, never-expire log groups, standing eval/ingestion schedules, >3 CloudWatch dashboards.
+
+**Token amplification:** One user-visible agent turn can trigger multiple Bedrock calls (classify/draft/judge/fan-out), often **5–10×** tokens versus a single completion. See [EVAL_STRATEGY.md](../02_testing/EVAL_STRATEGY.md).
+
+All figures above are **estimated** until Billing/scorecard evidence exists (measured-metrics-only rule).
+
 ## Requirement → component mapping
 
 | Requirement theme | Components |
 |-------------------|------------|
-| FAQ/policy answers | Classifier, KB retriever, agent, citations |
+| FAQ/policy answers | Classifier, KB retriever (S3 Vectors), agent, citations |
 | Order status | Classifier, router, order tool, agent |
 | Returns | Return tool, agent, KB policies |
 | Refunds | Refund tool, HITL ($100), Guardrails |
 | Product questions | KB retriever, agent |
 | Escalation | Confidence scorer, HITL decision |
-| Cost optimization | Model router, prompt caching, observability |
+| Cost optimization | Model router, prompt caching, dormancy ops, observability |
 | Quality proof | Eval plane, scorecards, golden scenarios |
 | Safety | Bedrock Guardrails, deterministic validation |
-| IaC / ops | CDK, teardown, CloudWatch |
+| IaC / ops | CDK (no VPC), teardown/reseed, CloudWatch retention, Budget |
 
 ## ADRs
 
-See [`DECISIONS/`](DECISIONS/).
+See [`DECISIONS/`](DECISIONS/). Key cost ADRs: **007** (S3 Vectors), **008** (dormancy).
 
 ## Future migration
 
