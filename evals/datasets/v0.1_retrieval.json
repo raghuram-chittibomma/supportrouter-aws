@@ -1,6 +1,6 @@
 {
   "dataset_version": "v0.1-retrieval-draft",
-  "notes": "Re-run after SupportRouter-KnowledgeBase deploy + scripts/reseed.py (ADR-007). Local keyword retrieve is interim.",
+  "notes": "Retrieval-focused subset. Full agent golden suite is v0.1_golden.json (#8). Re-run after KB deploy + scripts/reseed.py (ADR-007). Local keyword retrieve is interim.",
   "scenarios": [
     {
       "id": "faq-returns-001",
