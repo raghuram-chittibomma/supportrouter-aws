@@ -41,12 +41,22 @@ def handler(event: Any, context: Any) -> dict[str, Any]:
             "execution_status": "not_executed",
         },
     )
+    if (
+        stored.get("return_id") != return_id
+        or stored.get("order_id") != order_id
+        or stored.get("status") != "initiated"
+        or stored.get("execution_status") != "not_executed"
+    ):
+        return {
+            "ok": False,
+            "error": "Stored return request failed integrity validation",
+        }
     return {
         "ok": True,
         "order_id": order_id,
         "rma_id": stored["return_id"],
         "status": stored["status"],
-        "execution_status": stored["execution_status"],
+        "execution_status": "not_executed",
         "idempotent_replay": not created,
         "message": "Return initiated (synthetic). Ship unused item within 30 days.",
     }

@@ -82,6 +82,14 @@ def tables(monkeypatch):
                 "refund_eligible": True,
                 "refund_amount_usd": Decimal("159.99"),
             },
+            {
+                "order_id": "VE-1004",
+                "status": "delivered",
+                "tracking_number": "VETRACK-90902",
+                "items": [],
+                "refund_eligible": True,
+                "refund_amount_usd": Decimal("100.00"),
+            },
         ],
     )
     returns = FakeTable("return_id")
@@ -214,6 +222,67 @@ def test_refund_never_writes_ineligible_order(tables):
     assert tables["REFUNDS_TABLE_NAME"].put_calls == []
 
 
+def test_refund_at_threshold_does_not_require_approval(tables):
+    result = issue_refund.handler({"order_id": "VE-1004"}, None)
+
+    assert result["amount_usd"] == 100.0
+    assert result["requires_approval"] is False
+    assert result["status"] == "prepared"
+    assert result["execution_status"] == "not_executed"
+
+
+@pytest.mark.parametrize(
+    ("table_name", "key_name", "order_id", "item", "handler", "expected_error"),
+    [
+        (
+            "RETURNS_TABLE_NAME",
+            "return_id",
+            "VE-1002",
+            {
+                "return_id": "RMA-VE-1002",
+                "order_id": "VE-1002",
+                "status": "initiated",
+                "execution_status": "executed",
+            },
+            initiate_return.handler,
+            "Stored return request failed integrity validation",
+        ),
+        (
+            "REFUNDS_TABLE_NAME",
+            "refund_id",
+            "VE-1003",
+            {
+                "refund_id": "REFUND-VE-1003",
+                "order_id": "VE-1003",
+                "amount_usd": Decimal("159.99"),
+                "requires_approval": True,
+                "status": "pending_approval",
+                "execution_status": "executed",
+            },
+            issue_refund.handler,
+            "Stored refund request failed integrity validation",
+        ),
+    ],
+)
+def test_corrupt_idempotent_replay_fails_closed(
+    tables,
+    table_name,
+    key_name,
+    order_id,
+    item,
+    handler,
+    expected_error,
+):
+    table = tables[table_name]
+    assert table.key_name == key_name
+    table.items[item[key_name]] = deepcopy(item)
+
+    assert handler({"order_id": order_id}, None) == {
+        "ok": False,
+        "error": expected_error,
+    }
+
+
 def test_first_lambda_results_match_local_tool_contracts(tables):
     assert get_order_status.handler(
         {"order_id": "VE-1001"}, None
@@ -232,3 +301,7 @@ def test_handlers_import_from_lambda_asset_root(monkeypatch):
         sys.modules.pop(module_name, None)
         module = importlib.import_module(module_name)
         assert callable(module.handler)
+        assert module.handler({"order_id": "invalid"}, None) == {
+            "ok": False,
+            "error": "order_id must match VE-####",
+        }

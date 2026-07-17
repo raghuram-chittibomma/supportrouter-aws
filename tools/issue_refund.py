@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 try:
@@ -44,15 +44,37 @@ def handler(event: Any, context: Any) -> dict[str, Any]:
             "created_at": _shared.utc_now(),
         },
     )
-    stored_amount = Decimal(str(stored["amount_usd"]))
+    try:
+        stored_amount = Decimal(str(stored.get("amount_usd"))).quantize(
+            Decimal("0.01")
+        )
+    except (InvalidOperation, TypeError, ValueError):
+        return {
+            "ok": False,
+            "error": "Stored refund request failed integrity validation",
+        }
+    expected_status = "pending_approval" if requires_approval else "prepared"
+    if (
+        stored.get("refund_id") != refund_id
+        or stored.get("order_id") != order_id
+        or stored_amount != amount
+        or not isinstance(stored.get("requires_approval"), bool)
+        or stored.get("requires_approval") is not requires_approval
+        or stored.get("status") != expected_status
+        or stored.get("execution_status") != "not_executed"
+    ):
+        return {
+            "ok": False,
+            "error": "Stored refund request failed integrity validation",
+        }
     return {
         "ok": True,
         "order_id": order_id,
         "refund_id": stored["refund_id"],
         "amount_usd": float(stored_amount),
-        "requires_approval": bool(stored["requires_approval"]),
+        "requires_approval": requires_approval,
         "status": stored["status"],
-        "execution_status": stored["execution_status"],
+        "execution_status": "not_executed",
         "idempotent_replay": not created,
         "message": (
             (

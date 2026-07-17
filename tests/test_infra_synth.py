@@ -343,6 +343,29 @@ def test_each_tool_role_has_only_its_required_write_target(
         if resource["Type"] == "AWS::IAM::Policy"
         and {"Ref": role_id} in resource["Properties"]["Roles"]
     )
+    log_statements = [
+        statement
+        for statement in policy["Statement"]
+        if any(
+            str(action).startswith("logs:")
+            for action in (
+                statement["Action"]
+                if isinstance(statement["Action"], list)
+                else [statement["Action"]]
+            )
+        )
+    ]
+    assert len(log_statements) == 1
+    log_actions = log_statements[0]["Action"]
+    if not isinstance(log_actions, list):
+        log_actions = [log_actions]
+    assert set(log_actions) == {"logs:CreateLogStream", "logs:PutLogEvents"}
+    log_resources = log_statements[0]["Resource"]
+    if not isinstance(log_resources, list):
+        log_resources = [log_resources]
+    assert len(log_resources) == 2
+    assert all(resource != "*" for resource in log_resources)
+
     write_statements = [
         statement
         for statement in policy["Statement"]
