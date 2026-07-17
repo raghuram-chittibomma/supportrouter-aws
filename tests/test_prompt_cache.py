@@ -6,6 +6,7 @@ import json
 
 import pytest
 
+from evals.loader import ALLOWED_TOOLS
 from evals.prompt_cache import judge_cacheable_prefix
 from supportrouter import tools_local
 from supportrouter.graph import run_agent
@@ -45,6 +46,7 @@ def test_agent_tool_prefix_contains_only_fixed_tool_contracts():
         "issue_refund",
     ]
     assert all(callable(getattr(tools_local, schema["name"])) for schema in schemas)
+    assert {schema["name"] for schema in schemas} == set(ALLOWED_TOOLS)
     serialized = json.dumps(prefix.as_dict())
     assert "session_id" not in serialized
     assert "correlation_id" not in serialized

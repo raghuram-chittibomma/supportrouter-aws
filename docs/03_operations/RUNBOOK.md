@@ -49,13 +49,14 @@ Versioned cacheable prefixes are available for:
 - agent static system instructions + tool schemas (`agent-prefix-v0.1`)
 - eval judge system instructions + rubric (`v0.1-rubric-draft`)
 
-Request messages, session IDs, correlation IDs, and scenario inputs are appended
-outside these stable prefixes. Local runs and scorecards report
-`cache_enabled=false`, `cache_status=not_configured`, and null cache token
-counts. Agent results and scorecards include the applicable prefix version and
-SHA-256 digest. Conversation-end events forward cache read/write usage when a
-future provider adapter supplies it. Do not claim cache savings until a
-supported Bedrock model/region returns measured cache-read/write usage.
+These are identity/digest contracts until a Bedrock adapter consumes
+`CacheablePrefix.blocks`. Request messages, session IDs, correlation IDs, and
+scenario inputs are appended outside these stable prefixes. Local runs and
+scorecards report `cache_enabled=false`, `cache_status=not_configured`, and null
+cache token counts. Agent results and scorecards include the applicable prefix
+version and SHA-256 digest. Conversation-end events forward cache read/write
+usage when a future provider adapter supplies it. Do not claim cache savings
+until a supported Bedrock model/region returns measured cache-read/write usage.
 
 ## AWS deploy
 
