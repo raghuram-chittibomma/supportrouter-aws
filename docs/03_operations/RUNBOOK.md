@@ -149,6 +149,21 @@ bucket, then triggers Knowledge Base ingestion sync when `KB_ID` / stack outputs
 are available. It does **not** currently write the DynamoDB `Orders` table.
 **On-demand only** — no standing ingestion schedule.
 
+Use the managed KB in a local CLI run:
+
+```bash
+export SUPPORTROUTER_RETRIEVER=bedrock
+export SUPPORTROUTER_KB_ID=<KnowledgeBaseId stack output>
+export AWS_DEFAULT_REGION=us-east-1
+python -m supportrouter.cli "Does PowerDock Duo support video over USB-C?"
+```
+
+PowerShell uses `$env:SUPPORTROUTER_RETRIEVER = "bedrock"` and
+`$env:SUPPORTROUTER_KB_ID = "<id>"`; set `$env:AWS_DEFAULT_REGION` to the
+Knowledge Base region. Local retrieval remains the default when these variables
+are absent. Managed retrieval is billable and does not silently fall back to
+local documents on an AWS error.
+
 ## Eval schedule toggle (default OFF)
 
 CDK context `enable_reeval_schedule` defaults to `false` (no EventBridge rule created).
