@@ -70,7 +70,7 @@ All figures above are **estimated** until Billing/scorecard evidence exists (mea
 See [`DECISIONS/`](DECISIONS/). Key ADRs: **007** (S3 Vectors), **008**
 (dormancy), **009** (deterministic confidence policy), **010** (refund approval
 lifecycle), **011** (structured observability events), **012** (guardrail
-boundaries), **013** (Lambda tool isolation).
+boundaries), **013** (Lambda tool isolation), **014** (HTTP chat edge).
 
 Local runtime emits structured step traces with request `correlation_id` →
 `session_id` linkage. Token/cost fields are always present and stay
@@ -84,6 +84,11 @@ deferred to the Bedrock runtime adapter.
 The three order tools are independently deployable Lambdas with separate roles
 and resource-scoped DynamoDB access (ADR-013). The local graph still invokes
 contract-compatible in-process stubs until the runtime Lambda adapter lands.
+
+A thin HTTP chat edge (`SupportRouter-Api`) and the CLI both wrap the same
+`run_agent` call (ADR-014). The edge is a throttled HTTP API in front of a chat
+Lambda whose role can only write its own logs; drafting remains a local stub, so
+no Bedrock/DynamoDB permissions are granted and cost stays `not_measured`.
 
 ## Future migration
 

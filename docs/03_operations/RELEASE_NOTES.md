@@ -13,6 +13,10 @@ Canonical releases: GitHub Releases. This file mirrors **measured** results only
 | OpenSearch Serverless | forbidden | ADR-007; synth tests assert no AOSS |
 
 Infra: CDK stacks for CostGuardrails, KnowledgeBase (S3 Vectors), versioned
-Bedrock Guardrails, isolated Lambda tools/on-demand DynamoDB, Observability
-(≤3 dashboards, 14d logs), and EvalSchedule (rule only if
-`enable_reeval_schedule=true`).
+Bedrock Guardrails, isolated Lambda tools/on-demand DynamoDB, a throttled HTTP
+chat edge (`SupportRouter-Api`, ADR-014), Observability (≤3 dashboards, 14d
+logs), and EvalSchedule (rule only if `enable_reeval_schedule=true`).
+
+Edge: CLI (`supportrouter.cli`, now with `--session-id`) and an HTTP chat Lambda
+(`supportrouter.api.handler`) both wrap `run_agent`. Drafting is a local stub, so
+the edge grants no Bedrock/DynamoDB permissions and cost stays `not_measured`.

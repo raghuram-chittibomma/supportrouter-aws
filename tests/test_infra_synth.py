@@ -22,6 +22,7 @@ from supportrouter_infra.guardrails_stack import (  # noqa: E402
     BEDROCK_GUARDRAIL_POLICY_SPEC,
     GuardrailsStack,
 )
+from supportrouter_infra.api_stack import ApiStack  # noqa: E402
 from supportrouter_infra.knowledge_base_stack import KnowledgeBaseStack  # noqa: E402
 from supportrouter_infra.observability_stack import ObservabilityStack  # noqa: E402
 from supportrouter_infra.tools_stack import (  # noqa: E402
@@ -234,6 +235,93 @@ def test_tools_stack_has_three_isolated_lambda_roles(env: cdk.Environment) -> No
     serialized = json.dumps(raw)
     assert "AWS::EC2::VPC" not in serialized
     assert "AWS::EC2::SecurityGroup" not in serialized
+
+
+def test_api_stack_uses_throttled_http_api_and_least_privilege(
+    env: cdk.Environment,
+) -> None:
+    app = cdk.App()
+    stack = ApiStack(app, "Api", env=env)
+    template = Template.from_stack(stack)
+    raw = template.to_json()
+
+    # HTTP API (v2), not the more expensive REST API.
+    template.resource_count_is("AWS::ApiGatewayV2::Api", 1)
+    template.has_resource_properties(
+        "AWS::ApiGatewayV2::Api",
+        {"ProtocolType": "HTTP"},
+    )
+    serialized = json.dumps(raw)
+    assert "AWS::ApiGateway::RestApi" not in serialized
+    assert "AWS::EC2::VPC" not in serialized
+    assert "AWS::EC2::SecurityGroup" not in serialized
+
+    # Exactly one Lambda, one role, one log group with 14-day retention.
+    template.resource_count_is("AWS::Lambda::Function", 1)
+    template.resource_count_is("AWS::IAM::Role", 1)
+    template.has_resource_properties(
+        "AWS::Lambda::Function",
+        {
+            "Runtime": "python3.12",
+            "Architectures": ["arm64"],
+            "Handler": "supportrouter.api.handler",
+        },
+    )
+    template.has_resource_properties(
+        "AWS::Logs::LogGroup",
+        {"RetentionInDays": 14},
+    )
+
+    # POST /chat route.
+    template.has_resource_properties(
+        "AWS::ApiGatewayV2::Route",
+        {"RouteKey": "POST /chat"},
+    )
+
+    # Default stage is throttled to bound request cost.
+    template.has_resource_properties(
+        "AWS::ApiGatewayV2::Stage",
+        {
+            "StageName": "$default",
+            "AutoDeploy": True,
+            "DefaultRouteSettings": {
+                "ThrottlingRateLimit": 10,
+                "ThrottlingBurstLimit": 20,
+            },
+        },
+    )
+
+    # Role grants only log writes: no data-plane or wildcard permissions.
+    roles = [
+        resource["Properties"]
+        for resource in raw["Resources"].values()
+        if resource["Type"] == "AWS::IAM::Role"
+    ]
+    assert len(roles) == 1
+    assert "ManagedPolicyArns" not in roles[0]
+
+    policies = [
+        resource["Properties"]["PolicyDocument"]
+        for resource in raw["Resources"].values()
+        if resource["Type"] == "AWS::IAM::Policy"
+    ]
+    assert len(policies) == 1
+    statements = policies[0]["Statement"]
+    all_actions = set()
+    for statement in statements:
+        actions = statement["Action"]
+        all_actions.update(actions if isinstance(actions, list) else [actions])
+    assert all_actions == {"logs:CreateLogStream", "logs:PutLogEvents"}
+
+    policy_serialized = json.dumps(policies[0])
+    for forbidden in (
+        "dynamodb:",
+        "bedrock:",
+        "s3:",
+        '"Action": "*"',
+        '"Resource": "*"',
+    ):
+        assert forbidden not in policy_serialized
 
 
 def test_each_tool_asset_excludes_sibling_handlers() -> None:
