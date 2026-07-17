@@ -28,7 +28,7 @@ Fields: `sku`, `name`, `product_type`, `price_usd`, `warranty_months`, `support_
 | `messages[]` | L | role, content, ts |
 | `task_type` | S | last classified |
 | `model_id` | S | selected |
-| `status` | S | open / resolved / escalated / pending_approval |
+| `status` | S | `open` / `resolved` / `escalated` / `pending_approval` / `rejected` |
 | `confidence` | N | Deterministic evidence-capped score, 0.0–1.0 (ADR-009) |
 | `citations[]` | L | doc_id, excerpt |
 | `tool_calls[]` | L | name, args, result_ref |
@@ -80,7 +80,29 @@ resolved path. See [ADR-009](DECISIONS/ADR-009-deterministic-confidence-policy.m
 
 ## Approval requests
 
-`approval_id`, `session_id`, `order_id`, `amount_usd`, `status` (pending/approved/rejected), `reason`, timestamps.
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `approval_id` | S (PK) | Deterministic `approval-<session_id>` in local v0.1 |
+| `session_id` | S | Owning support session |
+| `order_id` | S | Synthetic order from the refund tool result |
+| `amount_usd` | N | Synthetic eligible refund amount |
+| `status` | S | `pending` / `approved` / `rejected` |
+| `reason` | S | Deterministic threshold reason |
+| `created_at` / `updated_at` | S | UTC ISO-8601 |
+| `decided_at` / `decided_by` | S | Nullable until terminal decision |
+| `decision_note` | S | Supervisor-provided note |
+| `version` | N | Starts at 1; increments on the terminal transition |
+| `execution_status` | S | `not_executed` in the local slice |
+
+The local demo stores these records in an in-memory repository with a
+process-local lock. Same-decision retries are idempotent; a conflicting terminal
+decision is rejected. DynamoDB conditional persistence and actual refund
+execution are deferred to the AWS completion of #16 after #14.
+
+Approval/session terminal mapping is explicit: approval `approved` maps the
+session to `resolved`; approval `rejected` maps the session to `rejected`.
+Low-confidence `escalated` sessions are not approval requests and require a
+separate future disposition workflow.
 
 ## Knowledge base documents
 
