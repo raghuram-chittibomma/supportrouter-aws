@@ -11,6 +11,8 @@ from langgraph.graph import END, START, StateGraph
 from supportrouter.classifier import classify
 from supportrouter.decision import hitl_decision, score_confidence
 from supportrouter.observability import (
+    PLANE_EVAL,
+    PLANE_RUNTIME,
     emit_conversation_end,
     emit_conversation_start,
     instrument_node,
@@ -261,8 +263,11 @@ def run_agent(
     session_id: str | None = None,
     *,
     correlation_id: str | None = None,
+    plane: str = PLANE_RUNTIME,
 ) -> dict[str, Any]:
     """Execute the SupportRouter graph and return a JSON-serializable result."""
+    if plane not in {PLANE_RUNTIME, PLANE_EVAL}:
+        raise ValueError("plane must be 'runtime' or 'eval'")
     app = get_app()
     resolved_session_id = session_id or str(uuid.uuid4())
     resolved_correlation_id = correlation_id or new_correlation_id()
@@ -270,18 +275,32 @@ def run_agent(
         session_id=resolved_session_id,
         correlation_id=resolved_correlation_id,
         message=message,
+        plane=plane,
     )
     started = time.perf_counter()
-    final: AgentState = app.invoke(
-        {
-            "session_id": resolved_session_id,
-            "correlation_id": resolved_correlation_id,
-            "message": message,
-        }
-    )
+    try:
+        final: AgentState = app.invoke(
+            {
+                "session_id": resolved_session_id,
+                "correlation_id": resolved_correlation_id,
+                "plane": plane,
+                "message": message,
+            }
+        )
+    except Exception as exc:
+        emit_conversation_end(
+            session_id=resolved_session_id,
+            correlation_id=resolved_correlation_id,
+            result={"status": "error"},
+            duration_ms=round((time.perf_counter() - started) * 1000, 3),
+            plane=plane,
+            error_type=type(exc).__name__,
+        )
+        raise
     result = {
         "session_id": final.get("session_id") or resolved_session_id,
         "correlation_id": resolved_correlation_id,
+        "plane": plane,
         "task_type": final.get("task_type"),
         "model_id": final.get("model_id"),
         "routing_table_version": final.get("routing_table_version"),
@@ -309,5 +328,6 @@ def run_agent(
         correlation_id=resolved_correlation_id,
         result=result,
         duration_ms=round((time.perf_counter() - started) * 1000, 3),
+        plane=plane,
     )
     return result

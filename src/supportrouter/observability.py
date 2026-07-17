@@ -156,6 +156,8 @@ def instrument_node(step_name: str, node_fn):
     def wrapped(state: dict[str, Any]) -> dict[str, Any]:
         session_id = str(state.get("session_id") or "unknown")
         correlation_id = str(state.get("correlation_id") or session_id)
+        plane = str(state.get("plane") or PLANE_RUNTIME)
+        was_short_circuited = bool(state.get("error"))
         started = time.perf_counter()
         try:
             result = node_fn(state)
@@ -165,26 +167,30 @@ def instrument_node(step_name: str, node_fn):
                 session_id=session_id,
                 correlation_id=correlation_id,
                 step=step_name,
+                plane=plane,
                 status="error",
                 duration_ms=round((time.perf_counter() - started) * 1000, 3),
-                attributes={"error": str(exc)},
+                attributes={"error_type": type(exc).__name__},
             )
             raise
 
         duration_ms = round((time.perf_counter() - started) * 1000, 3)
         notes = list(result.get("notes") or state.get("notes") or [])
+        conversation_status = result.get("status") or state.get("status")
         emit_event(
             event_type="agent.step",
             session_id=str(result.get("session_id") or session_id),
             correlation_id=correlation_id,
             step=step_name,
-            status=str(result.get("status") or state.get("status") or "ok"),
+            plane=plane,
+            status="skipped" if was_short_circuited else "ok",
             duration_ms=duration_ms,
             attributes={
                 "task_type": result.get("task_type") or state.get("task_type"),
                 "model_id": result.get("model_id") or state.get("model_id"),
                 "note": notes[-1] if notes else None,
-                "error": result.get("error"),
+                "conversation_status": conversation_status,
+                "has_error": bool(result.get("error") or state.get("error")),
             },
         )
         return result
@@ -199,11 +205,13 @@ def emit_conversation_start(
     session_id: str,
     correlation_id: str,
     message: str,
+    plane: str = PLANE_RUNTIME,
 ) -> dict[str, Any]:
     return emit_event(
         event_type="conversation.start",
         session_id=session_id,
         correlation_id=correlation_id,
+        plane=plane,
         status="open",
         attributes={"message_chars": len(message or "")},
     )
@@ -215,11 +223,14 @@ def emit_conversation_end(
     correlation_id: str,
     result: dict[str, Any],
     duration_ms: float,
+    plane: str = PLANE_RUNTIME,
+    error_type: str | None = None,
 ) -> dict[str, Any]:
     return emit_event(
         event_type="conversation.end",
         session_id=session_id,
         correlation_id=correlation_id,
+        plane=plane,
         status=str(result.get("status") or "unknown"),
         duration_ms=duration_ms,
         attributes={
@@ -229,6 +240,7 @@ def emit_conversation_end(
             "tool_count": len(result.get("tool_calls") or []),
             "citation_count": len(result.get("citations") or []),
             "approval_id": result.get("approval_id"),
+            "error_type": error_type,
         },
     )
 
@@ -240,12 +252,14 @@ def emit_hitl_decision(
     decision: str,
     status: str,
     approval_id: str | None,
+    plane: str = PLANE_RUNTIME,
 ) -> dict[str, Any]:
     return emit_event(
         event_type="hitl.decision",
         session_id=session_id,
         correlation_id=correlation_id,
         step="hitl_decision",
+        plane=plane,
         status=status,
         attributes={
             "decision": decision,

@@ -34,6 +34,7 @@ Each local agent run emits structured JSON events with:
 
 - `correlation_id` linking the request to `session_id`
 - per-step traces for validate/classify/route/retrieve|tools/draft/confidence/HITL
+- step-local status (`ok`, `skipped`, `error`) separate from conversation outcome
 - explicit `usage` and `cost_usd` fields that remain `null` / `not_measured`
 
 Default sink is process-local memory for tests. JSON-line logging is available

@@ -48,6 +48,7 @@ Logs Insights. Required fields:
 | `session_id` | Support session ID |
 | `plane` | `runtime` or `eval` |
 | `step` | Agent node name when `event_type=agent.step` |
+| `status` | Step: `ok` / `skipped` / `error`; conversation events use outcome status |
 | `usage.input_tokens` / `output_tokens` / `total_tokens` | Present; null until Bedrock is measured |
 | `cost_usd` / `cost_status` | `null` / `not_measured` until scorecards or billing evidence exist |
 

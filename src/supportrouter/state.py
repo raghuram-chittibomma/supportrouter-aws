@@ -19,6 +19,7 @@ class AgentState(TypedDict):
     session_id: str
     message: str
     correlation_id: NotRequired[str | None]
+    plane: NotRequired[Literal["runtime", "eval"]]
     task_type: NotRequired[TaskType | None]
     model_id: NotRequired[str | None]
     routing_table_version: NotRequired[str | None]

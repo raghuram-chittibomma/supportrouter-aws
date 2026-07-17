@@ -89,6 +89,7 @@ def decide_hitl(
     if decision_norm not in {"approve", "reject"}:
         raise ValueError("decision must be 'approve' or 'reject'")
 
+    trace_fields: dict[str, str | None] | None = None
     with _LOCK:
         record = _SESSIONS.get(session_id)
         if record is None:
@@ -142,14 +143,20 @@ def decide_hitl(
                 "No refund was executed in this local demo."
                 f"{f' Note: {note}' if note else ''})_"
             ).strip()
-        emit_hitl_decision(
-            session_id=session_id,
-            correlation_id=str(record.get("correlation_id") or session_id),
-            decision=decision_norm,
-            status=str(record["status"]),
-            approval_id=str(approval_id) if approval_id else None,
-        )
-        return deepcopy(record)
+        trace_fields = {
+            "session_id": session_id,
+            "correlation_id": str(record.get("correlation_id") or session_id),
+            "decision": decision_norm,
+            "status": str(record["status"]),
+            "approval_id": str(approval_id) if approval_id else None,
+            "plane": str(record.get("plane") or "runtime"),
+        }
+        updated = deepcopy(record)
+
+    if trace_fields is None:  # defensive invariant; all transition paths set it
+        raise RuntimeError("HITL transition completed without trace fields")
+    emit_hitl_decision(**trace_fields)
+    return updated
 
 
 def clear_sessions() -> None:

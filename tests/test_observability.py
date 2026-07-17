@@ -5,12 +5,17 @@ from __future__ import annotations
 import json
 import logging
 
+import pytest
+
+import supportrouter.graph as graph_module
+from evals.harness import run_harness
 from supportrouter.graph import run_agent
 from supportrouter.observability import (
     AGENT_STEPS,
     InMemoryTraceSink,
     LoggingTraceSink,
     clear_traces,
+    instrument_node,
     list_traces,
     set_trace_sink,
 )
@@ -46,6 +51,107 @@ def test_conversation_emits_correlated_step_traces():
         assert event["correlation_id"] == "corr-order-1"
         assert event["session_id"] == result["session_id"]
         assert event["plane"] == "runtime"
+    assert all(
+        event["status"] == "ok"
+        for event in events
+        if event["event_type"] == "agent.step"
+    )
+
+
+def test_retrieve_branch_has_only_executed_steps():
+    run_agent(
+        "What is the VoltEdge policy for unused items still in original packaging within 30 days?"
+    )
+
+    step_names = [
+        event["step"]
+        for event in list_traces()
+        if event["event_type"] == "agent.step"
+    ]
+    assert step_names == [
+        "validate",
+        "classify",
+        "route",
+        "retrieve",
+        "draft",
+        "confidence",
+        "hitl",
+    ]
+
+
+def test_rejected_message_marks_short_circuited_steps_as_skipped():
+    result = run_agent("   ")
+
+    steps = [
+        (event["step"], event["status"])
+        for event in list_traces()
+        if event["event_type"] == "agent.step"
+    ]
+    assert result["status"] == "rejected"
+    assert steps == [
+        ("validate", "ok"),
+        ("classify", "skipped"),
+        ("route", "skipped"),
+        ("draft", "skipped"),
+        ("confidence", "skipped"),
+        ("hitl", "skipped"),
+    ]
+    assert list_traces()[-1]["status"] == "rejected"
+
+
+def test_failed_conversation_always_emits_terminal_error_event(monkeypatch):
+    class BrokenApp:
+        def invoke(self, state):
+            raise RuntimeError("synthetic failure")
+
+    monkeypatch.setattr(graph_module, "get_app", lambda: BrokenApp())
+
+    with pytest.raises(RuntimeError, match="synthetic failure"):
+        run_agent("Where is my order VE-1001?", correlation_id="corr-error")
+
+    events = list_traces()
+    assert [event["event_type"] for event in events] == [
+        "conversation.start",
+        "conversation.end",
+    ]
+    assert events[-1]["status"] == "error"
+    assert events[-1]["attributes"]["error_type"] == "RuntimeError"
+
+
+def test_node_exception_emits_step_error_without_message_content():
+    def broken_node(state):
+        raise ValueError("synthetic secret details")
+
+    wrapped = instrument_node("broken", broken_node)
+
+    with pytest.raises(ValueError, match="synthetic secret details"):
+        wrapped(
+            {
+                "session_id": "session-error",
+                "correlation_id": "corr-node-error",
+                "plane": "runtime",
+                "message": "do not log this",
+            }
+        )
+
+    event = list_traces()[0]
+    assert event["event_type"] == "agent.step"
+    assert event["status"] == "error"
+    assert event["attributes"] == {"error_type": "ValueError"}
+    assert "synthetic secret details" not in json.dumps(event)
+    assert "do not log this" not in json.dumps(event)
+
+
+def test_eval_harness_labels_events_as_eval_plane():
+    run_harness(
+        candidate_model_ids=["logical:test"],
+        task_types={"faq_policy"},
+        scorecard_id="scorecard-observability-test",
+    )
+
+    events = list_traces()
+    assert events
+    assert {event["plane"] for event in events} == {"eval"}
 
 
 def test_token_and_cost_fields_are_explicitly_unmeasured():
