@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from threading import Lock
 from typing import Any
 
+from supportrouter.observability import emit_hitl_decision
 from supportrouter.schemas import ApprovalRequest
 
 _LOCK = Lock()
@@ -20,6 +21,8 @@ def save_session(result: dict[str, Any]) -> dict[str, Any]:
     if not session_id:
         raise ValueError("session_id required")
     record = deepcopy(result)
+    if not record.get("correlation_id"):
+        record["correlation_id"] = record["session_id"]
     with _LOCK:
         existing = _SESSIONS.get(session_id)
         approval_id = f"approval-{session_id}"
@@ -139,6 +142,13 @@ def decide_hitl(
                 "No refund was executed in this local demo."
                 f"{f' Note: {note}' if note else ''})_"
             ).strip()
+        emit_hitl_decision(
+            session_id=session_id,
+            correlation_id=str(record.get("correlation_id") or session_id),
+            decision=decision_norm,
+            status=str(record["status"]),
+            approval_id=str(approval_id) if approval_id else None,
+        )
         return deepcopy(record)
 
 

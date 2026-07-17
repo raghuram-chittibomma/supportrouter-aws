@@ -32,8 +32,29 @@ Fields: `sku`, `name`, `product_type`, `price_usd`, `warranty_months`, `support_
 | `confidence` | N | Deterministic evidence-capped score, 0.0–1.0 (ADR-009) |
 | `citations[]` | L | doc_id, excerpt |
 | `tool_calls[]` | L | name, args, result_ref |
-| `cost_usd` | N | measured when available |
+| `cost_usd` | N | measured when available; otherwise null with `cost_status=not_measured` |
 | `created_at` / `updated_at` | S | |
+
+## Observability events
+
+Structured JSON events are emitted for local runs and are shaped for CloudWatch
+Logs Insights. Required fields:
+
+| Attribute | Notes |
+|-----------|-------|
+| `schema_version` | `v0.1` |
+| `event_type` | `conversation.start`, `agent.step`, `conversation.end`, `hitl.decision` |
+| `correlation_id` | Request correlation ID linking API/CLI/UI call → session |
+| `session_id` | Support session ID |
+| `plane` | `runtime` or `eval` |
+| `step` | Agent node name when `event_type=agent.step` |
+| `usage.input_tokens` / `output_tokens` / `total_tokens` | Present; null until Bedrock is measured |
+| `cost_usd` / `cost_status` | `null` / `not_measured` until scorecards or billing evidence exist |
+
+Local demos keep an in-memory sink by default. The CDK Observability stack already
+provisions the ≤3 CloudWatch dashboards and log groups as documented stubs
+(`infra/supportrouter_infra/observability_stack.py`); live metric widgets remain
+deferred until runtime Lambdas and Bedrock calls land.
 
 ## Confidence and HITL policy
 

@@ -71,6 +71,10 @@ See [`DECISIONS/`](DECISIONS/). Key ADRs: **007** (S3 Vectors), **008**
 (dormancy), **009** (deterministic confidence policy), **010** (refund approval
 lifecycle).
 
+Local runtime emits structured step traces with request `correlation_id` →
+`session_id` linkage. Token/cost fields are always present and stay
+`not_measured` until Bedrock usage is recorded.
+
 ## Future migration
 
 Keep tool contracts, KB corpus, routing table schema, and eval harness stable. Milestone 6 may host the agent graph on AgentCore Runtime and expose Lambda tools via MCP without changing domain logic.

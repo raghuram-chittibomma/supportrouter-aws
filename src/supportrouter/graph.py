@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 import uuid
 from typing import Any, Literal
 
@@ -9,6 +10,12 @@ from langgraph.graph import END, START, StateGraph
 
 from supportrouter.classifier import classify
 from supportrouter.decision import hitl_decision, score_confidence
+from supportrouter.observability import (
+    emit_conversation_end,
+    emit_conversation_start,
+    instrument_node,
+    new_correlation_id,
+)
 from supportrouter.retrieve import retrieve
 from supportrouter.router import route
 from supportrouter.state import AgentState
@@ -214,14 +221,14 @@ def after_route(
 
 def build_graph():
     graph = StateGraph(AgentState)
-    graph.add_node("validate", validate_node)
-    graph.add_node("classify", classify_node)
-    graph.add_node("route", route_node)
-    graph.add_node("retrieve", retrieve_node)
-    graph.add_node("tools", tools_node)
-    graph.add_node("draft", draft_node)
-    graph.add_node("confidence", confidence_node)
-    graph.add_node("hitl", hitl_node)
+    graph.add_node("validate", instrument_node("validate", validate_node))
+    graph.add_node("classify", instrument_node("classify", classify_node))
+    graph.add_node("route", instrument_node("route", route_node))
+    graph.add_node("retrieve", instrument_node("retrieve", retrieve_node))
+    graph.add_node("tools", instrument_node("tools", tools_node))
+    graph.add_node("draft", instrument_node("draft", draft_node))
+    graph.add_node("confidence", instrument_node("confidence", confidence_node))
+    graph.add_node("hitl", instrument_node("hitl", hitl_node))
 
     graph.add_edge(START, "validate")
     graph.add_edge("validate", "classify")
@@ -249,17 +256,32 @@ def get_app():
     return _APP
 
 
-def run_agent(message: str, session_id: str | None = None) -> dict[str, Any]:
+def run_agent(
+    message: str,
+    session_id: str | None = None,
+    *,
+    correlation_id: str | None = None,
+) -> dict[str, Any]:
     """Execute the SupportRouter graph and return a JSON-serializable result."""
     app = get_app()
+    resolved_session_id = session_id or str(uuid.uuid4())
+    resolved_correlation_id = correlation_id or new_correlation_id()
+    emit_conversation_start(
+        session_id=resolved_session_id,
+        correlation_id=resolved_correlation_id,
+        message=message,
+    )
+    started = time.perf_counter()
     final: AgentState = app.invoke(
         {
-            "session_id": session_id or str(uuid.uuid4()),
+            "session_id": resolved_session_id,
+            "correlation_id": resolved_correlation_id,
             "message": message,
         }
     )
-    return {
-        "session_id": final.get("session_id"),
+    result = {
+        "session_id": final.get("session_id") or resolved_session_id,
+        "correlation_id": resolved_correlation_id,
         "task_type": final.get("task_type"),
         "model_id": final.get("model_id"),
         "routing_table_version": final.get("routing_table_version"),
@@ -272,5 +294,20 @@ def run_agent(message: str, session_id: str | None = None) -> dict[str, Any]:
         "hitl_reason": final.get("hitl_reason"),
         "refund_amount_usd": final.get("refund_amount_usd"),
         "notes": final.get("notes") or [],
+        "usage": {
+            "input_tokens": None,
+            "output_tokens": None,
+            "total_tokens": None,
+            "cache_enabled": False,
+        },
+        "cost_usd": None,
+        "cost_status": "not_measured",
         "cost_note": "not measured (local stubs; no Bedrock invocation)",
     }
+    emit_conversation_end(
+        session_id=str(result["session_id"]),
+        correlation_id=resolved_correlation_id,
+        result=result,
+        duration_ms=round((time.perf_counter() - started) * 1000, 3),
+    )
+    return result
