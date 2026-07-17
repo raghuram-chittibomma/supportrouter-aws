@@ -51,6 +51,9 @@ def initiate_return(order_id: str) -> dict[str, Any]:
         "ok": True,
         "order_id": order["order_id"],
         "rma_id": f"RMA-{order['order_id']}",
+        "status": "initiated",
+        "execution_status": "not_executed",
+        "idempotent_replay": False,
         "message": "Return initiated (synthetic). Ship unused item within 30 days.",
     }
 
@@ -65,11 +68,25 @@ def issue_refund(order_id: str) -> dict[str, Any]:
     return {
         "ok": True,
         "order_id": order["order_id"],
+        "refund_id": f"REFUND-{order['order_id']}",
         "amount_usd": amount,
         "requires_approval": amount > REFUND_HITL_THRESHOLD_USD,
-        "message": (
-            f"Refund of ${amount:.2f} requires supervisor approval"
+        "status": (
+            "pending_approval"
             if amount > REFUND_HITL_THRESHOLD_USD
-            else f"Refund of ${amount:.2f} approved for execution (synthetic)"
+            else "prepared"
+        ),
+        "execution_status": "not_executed",
+        "idempotent_replay": False,
+        "message": (
+            (
+                f"Refund of ${amount:.2f} prepared (synthetic); "
+                "requires supervisor approval; no payment was executed"
+            )
+            if amount > REFUND_HITL_THRESHOLD_USD
+            else (
+                f"Refund of ${amount:.2f} prepared (synthetic); "
+                "no payment was executed"
+            )
         ),
     }

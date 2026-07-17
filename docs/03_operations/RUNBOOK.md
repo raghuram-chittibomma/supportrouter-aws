@@ -25,8 +25,26 @@ idempotent, conflicting retries are rejected, and the UI explicitly reports
 that no refund was executed.
 
 Sessions and approval records live only in the local process and are lost on
-restart. DynamoDB conditional writes and real refund execution are deferred to
-the AWS completion of #16 after the Lambda tools in #14.
+restart. DynamoDB persistence for sessions/`ApprovalRequest` decisions and real
+refund execution are deferred to the AWS completion of #16.
+
+### Lambda tool contracts
+
+`SupportRouter-Tools` synthesizes three separate Python Lambdas and IAM roles:
+
+- `get_order_status`: read `Orders`
+- `initiate_return`: read `Orders`, write `Returns`
+- `issue_refund`: read `Orders`, write `RefundRequests`
+
+Invoke payloads use `{"order_id": "VE-####"}`. Return/refund writes are
+conditional and idempotent. Refund responses and records always report
+`execution_status=not_executed`; this stack has no payment integration.
+
+The current local graph still uses `src/supportrouter/tools_local.py`. Live
+Lambda invocation waits for the runtime adapter, and the deployed `Orders`
+table must be seeded with synthetic fixtures before use. `scripts/reseed.py`
+does not load DynamoDB Orders yet; that remains in #13 rather than this tools
+slice.
 
 ### Local observability
 
@@ -106,6 +124,10 @@ After destroy, confirm in `us-east-1` (or deploy region):
 - [ ] No OpenSearch Serverless collections for this project (`aws opensearchserverless list-collections`) — deleting a KB does **not** always delete AOSS
 - [ ] No SupportRouter Bedrock Knowledge Bases remain
 - [ ] No SupportRouter S3 Vectors buckets / KB doc buckets left unintended
+- [ ] No `supportrouter-orders`, `supportrouter-returns`, or
+  `supportrouter-refundrequests` tables remain
+- [ ] No `supportrouter-get-order-status`, `supportrouter-initiate-return`, or
+  `supportrouter-issue-refund` Lambdas remain
 - [ ] No SupportRouter log groups with **never-expire** retention
 - [ ] No SupportRouter VPC or NAT Gateways (we must not create any)
 - [ ] EventBridge: no SupportRouter re-eval rules left behind
@@ -122,7 +144,10 @@ aws opensearchserverless delete-collection --id <collection-id>
 python scripts/reseed.py
 ```
 
-Uploads synthetic orders/routing fixtures guidance and KB markdown to the configured S3 doc bucket, then triggers Knowledge Base ingestion sync when `KB_ID` / stack outputs are available. **On-demand only** — no standing ingestion schedule.
+Uploads synthetic fixture guidance and KB markdown to the configured S3 doc
+bucket, then triggers Knowledge Base ingestion sync when `KB_ID` / stack outputs
+are available. It does **not** currently write the DynamoDB `Orders` table.
+**On-demand only** — no standing ingestion schedule.
 
 ## Eval schedule toggle (default OFF)
 

@@ -20,6 +20,31 @@ Fields: `sku`, `name`, `product_type`, `price_usd`, `warranty_months`, `support_
 | `refund_eligible` | BOOL | |
 | `refund_amount_usd` | N | if applicable |
 
+## Return requests (DynamoDB `Returns`)
+
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `return_id` | S (PK) | Deterministic `RMA-<order_id>` |
+| `order_id` | S | Synthetic source order |
+| `status` | S | `initiated` |
+| `execution_status` | S | `not_executed` in v0.1 |
+| `created_at` | S | UTC ISO-8601 |
+
+## Refund requests (DynamoDB `RefundRequests`)
+
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `refund_id` | S (PK) | Deterministic `REFUND-<order_id>` |
+| `order_id` | S | Synthetic source order |
+| `amount_usd` | N | Eligible amount copied from `Orders` |
+| `requires_approval` | BOOL | True only when amount is above `$100` |
+| `status` | S | `prepared` / `pending_approval` |
+| `execution_status` | S | Always `not_executed` in this slice |
+| `created_at` | S | UTC ISO-8601 |
+
+`RefundRequests` records preparation by the refund Lambda. They are not payment
+records and are separate from supervisor `ApprovalRequest` decisions.
+
 ## Sessions (DynamoDB `Sessions`)
 
 | Attribute | Type | Notes |

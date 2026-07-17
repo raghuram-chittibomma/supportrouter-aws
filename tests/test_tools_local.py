@@ -48,6 +48,9 @@ def test_initiate_return_success():
         "ok": True,
         "order_id": "VE-1002",
         "rma_id": "RMA-VE-1002",
+        "status": "initiated",
+        "execution_status": "not_executed",
+        "idempotent_replay": False,
         "message": "Return initiated (synthetic). Ship unused item within 30 days.",
     }
 
@@ -90,9 +93,15 @@ def test_issue_refund_below_threshold():
     assert issue_refund("VE-1002") == {
         "ok": True,
         "order_id": "VE-1002",
+        "refund_id": "REFUND-VE-1002",
         "amount_usd": 89.99,
         "requires_approval": False,
-        "message": "Refund of $89.99 approved for execution (synthetic)",
+        "status": "prepared",
+        "execution_status": "not_executed",
+        "idempotent_replay": False,
+        "message": (
+            "Refund of $89.99 prepared (synthetic); no payment was executed"
+        ),
     }
 
 
@@ -100,9 +109,16 @@ def test_issue_refund_above_threshold():
     assert issue_refund("VE-1003") == {
         "ok": True,
         "order_id": "VE-1003",
+        "refund_id": "REFUND-VE-1003",
         "amount_usd": 159.99,
         "requires_approval": True,
-        "message": "Refund of $159.99 requires supervisor approval",
+        "status": "pending_approval",
+        "execution_status": "not_executed",
+        "idempotent_replay": False,
+        "message": (
+            "Refund of $159.99 prepared (synthetic); requires supervisor "
+            "approval; no payment was executed"
+        ),
     }
 
 
@@ -122,9 +138,15 @@ def test_issue_refund_at_threshold_does_not_require_approval(monkeypatch):
     assert issue_refund("VE-2000") == {
         "ok": True,
         "order_id": "VE-2000",
+        "refund_id": "REFUND-VE-2000",
         "amount_usd": 100.0,
         "requires_approval": False,
-        "message": "Refund of $100.00 approved for execution (synthetic)",
+        "status": "prepared",
+        "execution_status": "not_executed",
+        "idempotent_replay": False,
+        "message": (
+            "Refund of $100.00 prepared (synthetic); no payment was executed"
+        ),
     }
 
 
