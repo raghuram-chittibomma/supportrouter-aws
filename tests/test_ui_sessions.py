@@ -116,7 +116,16 @@ def test_on_queue_select_fills_session_and_detail():
     sid = result["session_id"]
 
     class _Evt:
-        row_value = [sid, "pending_approval", "refund_request", "159.99", "over", "msg"]
+        row_value = [
+            sid,
+            "pending_approval",
+            "refund_request",
+            "159.99",
+            f"approval-{sid}",
+            "pending",
+            "over",
+            "msg",
+        ]
         index = (0, 0)
         value = sid
 
