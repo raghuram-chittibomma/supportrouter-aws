@@ -254,8 +254,8 @@ def test_tools_stack_has_three_isolated_lambda_roles(env: cdk.Environment) -> No
         {
             "Runtime": "python3.12",
             "Architectures": ["arm64"],
-            "MemorySize": 128,
-            "Timeout": 5,
+            "MemorySize": 256,
+            "Timeout": 15,
         },
     )
     template.has_resource_properties(

@@ -34,12 +34,13 @@ def get_order(order_id: str) -> dict[str, Any] | None:
         Key={"order_id": order_id},
         ConsistentRead=True,
         ProjectionExpression=(
-            "#order_id, #status, tracking_number, items, "
+            "#order_id, #status, tracking_number, #items, "
             "refund_eligible, refund_amount_usd"
         ),
         ExpressionAttributeNames={
             "#order_id": "order_id",
             "#status": "status",
+            "#items": "items",
         },
     )
     return response.get("Item")

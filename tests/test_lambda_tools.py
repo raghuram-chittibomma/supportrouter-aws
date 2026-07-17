@@ -148,6 +148,8 @@ def test_get_order_status_is_read_only_and_json_safe(tables):
     assert order_read["ConsistentRead"] is True
     assert "shipping_address" not in order_read["ProjectionExpression"]
     assert "customer_id" not in order_read["ProjectionExpression"]
+    assert "#items" in order_read["ProjectionExpression"]
+    assert order_read["ExpressionAttributeNames"]["#items"] == "items"
     json.dumps(result)
 
 
