@@ -50,6 +50,10 @@ def test_local_scorecard_never_claims_model_judge_or_cost_execution():
     assert scorecard["summary"]["judge_completed"] is False
     assert scorecard["summary"]["overall_pass"] is None
     assert scorecard["cost"] == {"status": "not_measured", "total_usd": None}
+    assert scorecard["cache_enabled"] is False
+    assert scorecard["cache_status"] == "not_configured"
+    assert scorecard["judge_prompt_cache"]["prefix_name"] == "eval-judge-rubric"
+    assert len(scorecard["judge_prompt_cache"]["prefix_sha256"]) == 64
     assert len(scorecard["incomplete_reasons"]) == 3
     for result in scorecard["results"]:
         assert result["candidate_executed"] is False

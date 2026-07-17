@@ -18,6 +18,7 @@ from supportrouter.observability import (
     instrument_node,
     new_correlation_id,
 )
+from supportrouter.prompt_cache import agent_cacheable_prefix, unavailable_cache_usage
 from supportrouter.retrieve import retrieve
 from supportrouter.router import route
 from supportrouter.state import AgentState
@@ -297,6 +298,7 @@ def run_agent(
             error_type=type(exc).__name__,
         )
         raise
+    agent_prefix = agent_cacheable_prefix()
     result = {
         "session_id": final.get("session_id") or resolved_session_id,
         "correlation_id": resolved_correlation_id,
@@ -317,11 +319,16 @@ def run_agent(
             "input_tokens": None,
             "output_tokens": None,
             "total_tokens": None,
-            "cache_enabled": False,
+            **unavailable_cache_usage(),
         },
         "cost_usd": None,
         "cost_status": "not_measured",
         "cost_note": "not measured (local stubs; no Bedrock invocation)",
+        "prompt_cache": {
+            "prefix_name": agent_prefix.name,
+            "prefix_version": agent_prefix.version,
+            "prefix_sha256": agent_prefix.sha256,
+        },
     }
     emit_conversation_end(
         session_id=str(result["session_id"]),
