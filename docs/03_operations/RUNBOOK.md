@@ -52,8 +52,9 @@ slice.
 `SupportRouter-Api` fronts the agent graph with a throttled HTTP API and a chat
 Lambda (`supportrouter.api.handler`). The route is unauthenticated by design for
 the synthetic demo; the throttle (10 rps / burst 20), a 16 KiB body cap, and a
-4000-char `message` cap bound abuse. Once runtime dependencies are bundled (see
-below), call the stack's `ChatApiEndpoint` output:
+4000-char `message` cap bound abuse. CDK bundles pinned Linux ARM64 runtime
+dependencies plus the synthetic local fixtures (ADR-015). After deployment,
+call the stack's `ChatApiEndpoint` output:
 
 ```bash
 curl -sS -X POST "$CHAT_API_ENDPOINT/chat" \
@@ -65,9 +66,14 @@ Contract: `POST /chat` with `{"message", "session_id"?}`. Returns `200` with the
 agent result, `400` for bad input, `422` when the agent rejects a turn (e.g. a
 guardrail block), and `500` on internal error. Every response includes an
 `x-correlation-id` header for trace correlation. Drafting is still a local stub,
-so the Lambda role only writes logs and cost stays `not_measured`. A live deploy
-also needs `langgraph` bundled (layer/container); that packaging and Bedrock
-wiring are deferred.
+so the Lambda role only writes logs and cost stays `not_measured`. Bedrock
+drafting, managed Guardrails, and remote Lambda-tool invocation remain deferred.
+
+The first CDK build downloads the pinned dependencies listed in
+`infra/chat_runtime_requirements.txt`; local bundling cross-installs CPython 3.12
+Linux ARM64 wheels without Docker. Set
+`SUPPORTROUTER_FORCE_DOCKER_BUNDLING=1` to force the equivalent Docker path;
+CDK also falls back to it if local installation fails.
 
 ### Local observability
 

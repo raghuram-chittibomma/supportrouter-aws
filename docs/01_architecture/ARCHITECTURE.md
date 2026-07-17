@@ -76,7 +76,8 @@ All figures above are **estimated** until Billing/scorecard evidence exists (mea
 See [`DECISIONS/`](DECISIONS/). Key ADRs: **007** (S3 Vectors), **008**
 (dormancy), **009** (deterministic confidence policy), **010** (refund approval
 lifecycle), **011** (structured observability events), **012** (guardrail
-boundaries), **013** (Lambda tool isolation), **014** (HTTP chat edge).
+boundaries), **013** (Lambda tool isolation), **014** (HTTP chat edge), **015**
+(reproducible chat Lambda runtime bundle).
 
 Local runtime emits structured step traces with request `correlation_id` →
 `session_id` linkage. Token/cost fields are always present and stay
@@ -95,6 +96,8 @@ A thin HTTP chat edge (`SupportRouter-Api`) and the CLI both wrap the same
 `run_agent` call (ADR-014). The edge is a throttled HTTP API in front of a chat
 Lambda whose role can only write its own logs; drafting remains a local stub, so
 no Bedrock/DynamoDB permissions are granted and cost stays `not_measured`.
+The Lambda ZIP contains pinned ARM64 dependencies plus only the runtime package
+and synthetic fixtures (ADR-015).
 
 ## Future migration
 
