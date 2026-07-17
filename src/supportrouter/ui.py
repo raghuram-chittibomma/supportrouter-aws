@@ -9,7 +9,12 @@ from typing import Any
 import gradio as gr
 
 from supportrouter.graph import run_agent
-from supportrouter.sessions import decide_hitl, list_sessions, save_session
+from supportrouter.sessions import (
+    decide_hitl,
+    get_approval_request,
+    list_sessions,
+    save_session,
+)
 
 
 def format_customer_reply(result: dict[str, Any]) -> str:
@@ -38,7 +43,7 @@ def customer_chat(message: str, history: list) -> tuple[list, str]:
         return history, ""
     result = run_agent(text)
     result["message"] = text
-    save_session(result)
+    result = save_session(result)
     reply = format_customer_reply(result)
     history = history + [
         {"role": "user", "content": text},
@@ -48,16 +53,35 @@ def customer_chat(message: str, history: list) -> tuple[list, str]:
 
 
 def _queue_rows() -> list[list[str]]:
+    """Pending refund approvals that support Approve/Reject."""
     rows: list[list[str]] = []
-    for s in list_sessions(statuses={"pending_approval", "escalated"}):
+    for s in list_sessions(statuses={"pending_approval"}):
         rows.append(
             [
                 str(s.get("session_id") or ""),
                 str(s.get("status") or ""),
                 str(s.get("task_type") or ""),
                 str(s.get("refund_amount_usd") if s.get("refund_amount_usd") is not None else ""),
+                str(s.get("approval_id") or ""),
+                str(s.get("approval_status") or ""),
                 str(s.get("hitl_reason") or ""),
                 (s.get("message") or "")[:80],
+            ]
+        )
+    return rows
+
+
+def _escalation_rows() -> list[list[str]]:
+    """Read-only low-confidence escalations for supervisor awareness."""
+    rows: list[list[str]] = []
+    for session in list_sessions(statuses={"escalated"}):
+        rows.append(
+            [
+                str(session.get("session_id") or ""),
+                str(session.get("task_type") or ""),
+                str(session.get("confidence") if session.get("confidence") is not None else ""),
+                str(session.get("hitl_reason") or ""),
+                (session.get("message") or "")[:80],
             ]
         )
     return rows
@@ -75,7 +99,10 @@ def load_session_detail(session_id: str) -> str:
     matches = [s for s in list_sessions() if s.get("session_id") == sid]
     if not matches:
         return f"Session not found: {sid}"
-    return json.dumps(matches[0], indent=2)
+    session = matches[0]
+    approval_id = session.get("approval_id")
+    approval = get_approval_request(approval_id) if approval_id else None
+    return json.dumps({"session": session, "approval_request": approval}, indent=2)
 
 
 def session_id_from_select_event(evt: Any) -> str:
@@ -129,8 +156,10 @@ def supervisor_decide(
         updated = decide_hitl(sid, decision, note=note or "")
     except (KeyError, ValueError) as exc:
         return f"Error: {exc}", _queue_rows(), sid
+    approval_id = updated.get("approval_id")
+    approval = get_approval_request(approval_id) if approval_id else None
     return (
-        json.dumps(updated, indent=2),
+        json.dumps({"session": updated, "approval_request": approval}, indent=2),
         _queue_rows(),
         "",
     )
@@ -159,7 +188,8 @@ def build_ui():
             gr.Markdown(
                 "1. Click **Refresh queue** after customer messages that need HITL.  \n"
                 "2. **Click any cell in a queue row** to select that session.  \n"
-                "3. **Approve** or **Reject**."
+                "3. **Approve** or **Reject** pending refund approvals.  \n"
+                "Escalated sessions are view-only in this local slice."
             )
             refresh = gr.Button("Refresh queue", variant="secondary")
             queue = gr.Dataframe(
@@ -168,13 +198,29 @@ def build_ui():
                     "status",
                     "task_type",
                     "refund_usd",
+                    "approval_id",
+                    "approval_status",
                     "hitl_reason",
                     "message",
                 ],
-                datatype=["str"] * 6,
+                datatype=["str"] * 8,
                 interactive=False,
                 wrap=True,
                 label="HITL queue (click a cell to select that row)",
+            )
+            escalations = gr.Dataframe(
+                headers=[
+                    "session_id",
+                    "task_type",
+                    "confidence",
+                    "reason",
+                    "message",
+                ],
+                value=[],
+                datatype=["str"] * 5,
+                interactive=False,
+                wrap=True,
+                label="Escalations (read-only in local v0.1)",
             )
             session_id = gr.Textbox(
                 label="Selected session_id for Approve / Reject",
@@ -191,10 +237,12 @@ def build_ui():
                 refresh_queue,
                 outputs=[queue, session_id, detail],
             )
+            refresh.click(_escalation_rows, outputs=[escalations])
             demo.load(
                 refresh_queue,
                 outputs=[queue, session_id, detail],
             )
+            demo.load(_escalation_rows, outputs=[escalations])
             queue.select(
                 on_queue_select,
                 outputs=[session_id, detail],

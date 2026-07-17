@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Literal, TypedDict
 
 TaskType = Literal[
     "faq_policy",
@@ -13,6 +13,27 @@ TaskType = Literal[
     "product_question",
     "unknown",
 ]
+
+ApprovalStatus = Literal["pending", "approved", "rejected"]
+ApprovalExecutionStatus = Literal["not_executed"]
+
+
+class ApprovalRequest(TypedDict):
+    """Local approval contract; DynamoDB persistence lands in the AWS slice."""
+
+    approval_id: str
+    session_id: str
+    order_id: str
+    amount_usd: float
+    status: ApprovalStatus
+    reason: str
+    created_at: str
+    updated_at: str
+    decided_at: str | None
+    decided_by: str | None
+    decision_note: str
+    version: int
+    execution_status: ApprovalExecutionStatus
 
 
 @dataclass(frozen=True)

@@ -15,7 +15,8 @@ API Gateway → Support Lambda (LangGraph)
   → draft response
   → Guardrails (output)
   → deterministic evidence-capped confidence score (ADR-009)
-  → HITL decision (refund > $100 or low confidence)
+  → refund approval decision when amount > $100 (ADR-010)
+  → low-confidence escalation (separate from refund approval)
   → response { answer, citations, confidence, status }
   → session + cost trace (DynamoDB / CloudWatch)
 ```
@@ -58,7 +59,7 @@ All figures above are **estimated** until Billing/scorecard evidence exists (mea
 | Returns | Return tool, agent, KB policies |
 | Refunds | Refund tool, HITL ($100), Guardrails |
 | Product questions | KB retriever, agent |
-| Escalation | Confidence scorer, HITL decision |
+| Escalation | Confidence scorer; view-only locally (disposition later) |
 | Cost optimization | Model router, prompt caching, dormancy ops, observability |
 | Quality proof | Eval plane, scorecards, golden scenarios |
 | Safety | Bedrock Guardrails, deterministic validation |
@@ -67,7 +68,8 @@ All figures above are **estimated** until Billing/scorecard evidence exists (mea
 ## ADRs
 
 See [`DECISIONS/`](DECISIONS/). Key ADRs: **007** (S3 Vectors), **008**
-(dormancy), **009** (deterministic confidence policy).
+(dormancy), **009** (deterministic confidence policy), **010** (refund approval
+lifecycle).
 
 ## Future migration
 

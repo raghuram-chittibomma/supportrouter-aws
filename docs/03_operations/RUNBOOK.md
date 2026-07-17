@@ -18,7 +18,15 @@ python -m supportrouter.ui
 # Supervisor: Refresh queue → click a queue row → Approve/Reject selected session
 ```
 
-Supervisor reviews `pending_approval` / `escalated` sessions in the UI (or via CLI helpers). In-memory queue lives only for that local process.
+Supervisor reviews `pending_approval` / `escalated` sessions in the UI.
+Approve/Reject is restricted to explicit pending refund approval records;
+escalations are view-only in this local slice. Approval decisions are
+idempotent, conflicting retries are rejected, and the UI explicitly reports
+that no refund was executed.
+
+Sessions and approval records live only in the local process and are lost on
+restart. DynamoDB conditional writes and real refund execution are deferred to
+the AWS completion of #16 after the Lambda tools in #14.
 
 ## AWS deploy
 
@@ -106,4 +114,6 @@ Live Bedrock completion remains gated by issues #24 and #25.
 
 ## Incident / escalation (product)
 
-Supervisor reviews `pending_approval` / `escalated` sessions via the thin Gradio demo UI (`python -m supportrouter.ui`) or CLI in v0.1.
+Supervisor decides pending refund approvals and views escalated sessions via
+the thin Gradio demo UI (`python -m supportrouter.ui`). Escalation disposition
+and a supervisor CLI are not part of the local v0.1 slice.
