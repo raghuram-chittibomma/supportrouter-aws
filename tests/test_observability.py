@@ -15,6 +15,7 @@ from supportrouter.observability import (
     InMemoryTraceSink,
     LoggingTraceSink,
     clear_traces,
+    emit_conversation_end,
     instrument_node,
     list_traces,
     set_trace_sink,
@@ -164,6 +165,9 @@ def test_token_and_cost_fields_are_explicitly_unmeasured():
         "output_tokens": None,
         "total_tokens": None,
         "cache_enabled": False,
+        "cache_status": "not_configured",
+        "cache_read_tokens": None,
+        "cache_write_tokens": None,
     }
     assert result["cost_usd"] is None
     assert result["cost_status"] == "not_measured"
@@ -175,6 +179,35 @@ def test_token_and_cost_fields_are_explicitly_unmeasured():
         assert event["usage"]["output_tokens"] is None
         assert event["usage"]["total_tokens"] is None
         assert event["usage"]["cache_enabled"] is False
+        assert event["usage"]["cache_status"] == "not_configured"
+        assert event["usage"]["cache_read_tokens"] is None
+        assert event["usage"]["cache_write_tokens"] is None
+
+
+def test_conversation_end_forwards_provider_cache_usage_when_available():
+    emit_conversation_end(
+        session_id="session-cache",
+        correlation_id="corr-cache",
+        result={
+            "status": "resolved",
+            "usage": {
+                "input_tokens": 120,
+                "output_tokens": 30,
+                "total_tokens": 150,
+                "cache_enabled": True,
+                "cache_status": "hit",
+                "cache_read_tokens": 80,
+                "cache_write_tokens": 0,
+            },
+        },
+        duration_ms=1.0,
+    )
+
+    usage = list_traces()[0]["usage"]
+    assert usage["cache_enabled"] is True
+    assert usage["cache_status"] == "hit"
+    assert usage["cache_read_tokens"] == 80
+    assert usage["cache_write_tokens"] == 0
 
 
 def test_hitl_decision_emits_trace_event():

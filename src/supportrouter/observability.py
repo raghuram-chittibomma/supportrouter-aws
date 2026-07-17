@@ -15,6 +15,8 @@ from threading import Lock
 from typing import Any, Protocol
 from uuid import uuid4
 
+from supportrouter.prompt_cache import unavailable_cache_usage
+
 LOGGER = logging.getLogger("supportrouter.observability")
 
 AGENT_STEPS = (
@@ -122,9 +124,7 @@ def build_event(
         "input_tokens": None,
         "output_tokens": None,
         "total_tokens": None,
-        "cache_enabled": False,
-        "cache_read_tokens": None,
-        "cache_write_tokens": None,
+        **unavailable_cache_usage(),
         **(usage or {}),
     }
     return {
@@ -233,6 +233,7 @@ def emit_conversation_end(
         plane=plane,
         status=str(result.get("status") or "unknown"),
         duration_ms=duration_ms,
+        usage=result.get("usage"),
         attributes={
             "task_type": result.get("task_type"),
             "model_id": result.get("model_id"),

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Protocol, Sequence
 
 from evals.loader import ALLOWED_TOOLS, GOLDEN_DATASET_PATH, load_dataset
+from evals.prompt_cache import judge_cacheable_prefix
 from supportrouter.graph import run_agent
 from supportrouter.observability import PLANE_EVAL
 
@@ -142,9 +143,9 @@ def run_harness(
         raise ValueError("candidate_model_ids must be unique")
 
     dataset = load_dataset(dataset_path)
-    rubric = json.loads(rubric_path.read_text(encoding="utf-8"))
+    judge_prefix = judge_cacheable_prefix(rubric_path)
     active_runner = runner or LocalStubCandidateRunner()
-    active_judge = judge or NotRunJudge(rubric["judge_version"])
+    active_judge = judge or NotRunJudge(judge_prefix.version)
     selected = [
         scenario
         for scenario in dataset["scenarios"]
@@ -213,6 +214,12 @@ def run_harness(
         "model_ids": list(candidate_model_ids),
         "execution_mode": active_runner.execution_mode,
         "cache_enabled": False,
+        "cache_status": "not_configured",
+        "judge_prompt_cache": {
+            "prefix_name": judge_prefix.name,
+            "prefix_version": judge_prefix.version,
+            "prefix_sha256": judge_prefix.sha256,
+        },
         "created_at": created_at or datetime.now(timezone.utc).isoformat(),
         "incomplete_reasons": incomplete_reasons,
         "summary": {

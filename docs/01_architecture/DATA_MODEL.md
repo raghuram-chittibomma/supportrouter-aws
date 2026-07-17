@@ -50,7 +50,14 @@ Logs Insights. Required fields:
 | `step` | Agent node name when `event_type=agent.step` |
 | `status` | Step: `ok` / `skipped` / `error`; conversation events use outcome status |
 | `usage.input_tokens` / `output_tokens` / `total_tokens` | Present; null until Bedrock is measured |
+| `usage.cache_enabled` / `cache_status` | `false` / `not_configured` until model-region support is verified |
+| `usage.cache_read_tokens` / `cache_write_tokens` | Present; null until returned by Bedrock |
 | `cost_usd` / `cost_status` | `null` / `not_measured` until scorecards or billing evidence exist |
+
+Agent results expose `prompt_cache.prefix_name`, `prefix_version`, and
+`prefix_sha256`. Eval scorecards expose the same identity under
+`judge_prompt_cache`, keeping the static prefix traceable without claiming that
+the provider used it.
 
 Local demos keep an in-memory sink by default. The CDK Observability stack already
 provisions the ≤3 CloudWatch dashboards and log groups as documented stubs
