@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import aws_cdk as cdk
 
+from supportrouter_infra.api_stack import ApiStack
 from supportrouter_infra.cost_guardrails_stack import CostGuardrailsStack
 from supportrouter_infra.eval_schedule_stack import EvalScheduleStack
 from supportrouter_infra.guardrails_stack import GuardrailsStack
@@ -33,6 +34,7 @@ CostGuardrailsStack(app, "SupportRouter-CostGuardrails", env=env)
 KnowledgeBaseStack(app, "SupportRouter-KnowledgeBase", env=env)
 GuardrailsStack(app, "SupportRouter-Guardrails", env=env)
 ToolsStack(app, "SupportRouter-Tools", env=env)
+ApiStack(app, "SupportRouter-Api", env=env)
 ObservabilityStack(app, "SupportRouter-Observability", env=env)
 EvalScheduleStack(
     app,
