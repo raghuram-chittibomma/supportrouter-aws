@@ -47,9 +47,8 @@ because the agent still uses local stubs.
   (e.g. IAM or a JWT authorizer) is deferred with the runtime adapter.
 - The HTTP response is a curated projection (answer, citations, confidence,
   status, ids, guardrail summary), not the full internal agent dict.
-- The Lambda asset packages `src/` (excluding the gradio UI module). A live
-  deploy still requires bundling runtime dependencies (`langgraph`) via a layer
-  or container image; that packaging, live invocation wiring, Bedrock wiring, and
-  measured latency/cost are tracked in issue #57.
+- At this decision's acceptance, the Lambda asset packaged only `src/` and still
+  required runtime dependency bundling. ADR-015 supersedes that packaging
+  consequence with a deployable ZIP; Bedrock wiring remains deferred.
 - When the Bedrock runtime adapter lands, the edge gains only the specific
   model/tool permissions it then needs, preserving least privilege.

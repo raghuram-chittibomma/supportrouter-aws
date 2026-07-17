@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -22,7 +23,13 @@ from supportrouter_infra.guardrails_stack import (  # noqa: E402
     BEDROCK_GUARDRAIL_POLICY_SPEC,
     GuardrailsStack,
 )
-from supportrouter_infra.api_stack import ApiStack  # noqa: E402
+from supportrouter_infra.api_stack import (  # noqa: E402
+    RUNTIME_REQUIREMENTS,
+    ApiStack,
+    ChatRuntimeLocalBundling,
+    chat_runtime_bundling,
+    copy_runtime_sources,
+)
 from supportrouter_infra.knowledge_base_stack import KnowledgeBaseStack  # noqa: E402
 from supportrouter_infra.observability_stack import ObservabilityStack  # noqa: E402
 from supportrouter_infra.tools_stack import (  # noqa: E402
@@ -321,6 +328,9 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
             "Handler": "supportrouter.api.handler",
             "MemorySize": 256,
             "Timeout": 30,
+            "Environment": {
+                "Variables": {"PYTHONPATH": "/var/task/src:/var/task"},
+            },
         },
     )
     template.has_resource_properties(
@@ -378,6 +388,75 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
         '"Resource": "*"',
     ):
         assert forbidden not in policy_serialized
+
+
+def test_chat_runtime_asset_contains_code_data_and_pinned_dependencies(
+    tmp_path: Path,
+) -> None:
+    copy_runtime_sources(tmp_path)
+
+    staged_module = tmp_path / "src" / "supportrouter" / "tools_local.py"
+    assert (tmp_path / "src" / "supportrouter" / "api.py").is_file()
+    assert not (tmp_path / "src" / "supportrouter" / "ui.py").exists()
+    assert (tmp_path / "data" / "sample" / "orders.json").is_file()
+    assert (
+        staged_module.resolve().parents[2]
+        / "data"
+        / "sample"
+        / "routing_table.json"
+    ).is_file()
+    assert (
+        tmp_path / "data" / "knowledge_base" / "faq-powerdock-001.md"
+    ).is_file()
+
+    requirement_lines = [
+        line
+        for line in RUNTIME_REQUIREMENTS.read_text(encoding="utf-8").splitlines()
+        if line and not line.startswith("#")
+    ]
+    assert len(requirement_lines) > 30
+    assert all(line.count("==") == 1 for line in requirement_lines)
+    assert any(line.startswith("boto3==") for line in requirement_lines)
+    assert any(line.startswith("langgraph==") for line in requirement_lines)
+
+
+def test_chat_runtime_bundlers_target_same_linux_arm64_layout(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("SUPPORTROUTER_FORCE_DOCKER_BUNDLING", "1")
+    assert not ChatRuntimeLocalBundling().try_bundle(str(tmp_path), None)  # type: ignore[arg-type]
+
+    options = chat_runtime_bundling()
+    command = " ".join(options.command or [])
+    assert options.platform == "linux/arm64"
+    for expected in (
+        "--platform=manylinux2014_aarch64",
+        "--python-version=3.12",
+        "--abi=cp312",
+        "/asset-output/src/supportrouter",
+        "/asset-output/data/sample",
+        "/asset-output/data/knowledge_base",
+    ):
+        assert expected in command
+
+
+def test_chat_runtime_local_failure_falls_back_to_docker(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    def fail_install(*args, **kwargs):
+        raise subprocess.CalledProcessError(1, "pip")
+
+    monkeypatch.delenv("SUPPORTROUTER_FORCE_DOCKER_BUNDLING", raising=False)
+    monkeypatch.setattr(
+        "supportrouter_infra.api_stack.subprocess.run",
+        fail_install,
+    )
+    (tmp_path / "partial-install").write_text("partial", encoding="utf-8")
+
+    assert not ChatRuntimeLocalBundling().try_bundle(str(tmp_path), None)  # type: ignore[arg-type]
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_each_tool_asset_excludes_sibling_handlers() -> None:
