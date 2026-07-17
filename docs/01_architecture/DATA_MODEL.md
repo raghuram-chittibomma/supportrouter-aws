@@ -29,11 +29,38 @@ Fields: `sku`, `name`, `product_type`, `price_usd`, `warranty_months`, `support_
 | `task_type` | S | last classified |
 | `model_id` | S | selected |
 | `status` | S | open / resolved / escalated / pending_approval |
-| `confidence` | N | |
+| `confidence` | N | Deterministic evidence-capped score, 0.0–1.0 (ADR-009) |
 | `citations[]` | L | doc_id, excerpt |
 | `tool_calls[]` | L | name, args, result_ref |
 | `cost_usd` | N | measured when available |
 | `created_at` / `updated_at` | S | |
+
+## Confidence and HITL policy
+
+Confidence is a deterministic heuristic, not a calibrated probability. The
+runtime starts with classifier confidence and applies the evidence cap for the
+task type:
+
+| Task family | Successful evidence cap | Missing/failed evidence cap |
+|-------------|-------------------------|-----------------------------|
+| FAQ / product question | `0.95` with citation | `0.45` without citation |
+| Order / return / refund | `0.95` with successful tool result | `0.35` without successful tool result |
+| Unknown | `0.40` | `0.40` |
+
+The runtime starts with `score = classifier_confidence`, applies
+`score = min(score, cap)` only when the task has a listed cap, then returns
+`round(clamp(score, 0, 1), 3)`. An unlisted task type is only clamped and
+rounded.
+
+HITL rules are ordered:
+
+1. A `refund_request` with `refund_amount_usd > 100.0` enters
+   `pending_approval`.
+2. Otherwise, confidence `< 0.55` enters `escalated`.
+3. Otherwise, the outcome is `resolved`.
+
+The boundaries are strict: `$100.00` and confidence `0.55` both remain on the
+resolved path. See [ADR-009](DECISIONS/ADR-009-deterministic-confidence-policy.md).
 
 ## Routing table (DynamoDB `RoutingTable`)
 

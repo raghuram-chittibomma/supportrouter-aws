@@ -14,7 +14,7 @@ API Gateway → Support Lambda (LangGraph)
   → retrieve (Bedrock Knowledge Bases over S3 Vectors) and/or tools (order / return / refund Lambdas)
   → draft response
   → Guardrails (output)
-  → confidence score
+  → deterministic evidence-capped confidence score (ADR-009)
   → HITL decision (refund > $100 or low confidence)
   → response { answer, citations, confidence, status }
   → session + cost trace (DynamoDB / CloudWatch)
@@ -66,7 +66,8 @@ All figures above are **estimated** until Billing/scorecard evidence exists (mea
 
 ## ADRs
 
-See [`DECISIONS/`](DECISIONS/). Key cost ADRs: **007** (S3 Vectors), **008** (dormancy).
+See [`DECISIONS/`](DECISIONS/). Key ADRs: **007** (S3 Vectors), **008**
+(dormancy), **009** (deterministic confidence policy).
 
 ## Future migration
 

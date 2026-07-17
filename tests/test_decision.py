@@ -111,6 +111,15 @@ def test_score_confidence_unknown_is_capped():
     ) == 0.4
 
 
+def test_score_confidence_unlisted_task_only_clamps_and_rounds():
+    assert score_confidence(
+        classifier_confidence=0.87654,
+        task_type="future_task",
+        citations=[],
+        tool_calls=[],
+    ) == 0.877
+
+
 def test_score_confidence_clamps_and_rounds():
     assert score_confidence(
         classifier_confidence=1.5,
