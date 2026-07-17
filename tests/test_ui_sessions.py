@@ -16,7 +16,9 @@ from supportrouter.sessions import (
     save_session,
 )
 from supportrouter.ui import (
+    GUARDRAIL_REDACTED_MESSAGE,
     _escalation_rows,
+    customer_chat,
     format_customer_reply,
     on_queue_select,
     refresh_queue,
@@ -81,6 +83,21 @@ def test_format_customer_reply_includes_status():
     text = format_customer_reply(result)
     assert "resolved" in text
     assert "amazon.nova-micro" in text
+
+
+def test_customer_chat_does_not_retain_guardrail_blocked_input():
+    sensitive = "Order VE-1001 card 4111 1111 1111 1111"
+
+    history, cleared = customer_chat(sensitive, [])
+
+    sessions = list_sessions()
+    assert cleared == ""
+    assert history[0]["content"] == GUARDRAIL_REDACTED_MESSAGE
+    assert sessions[0]["message"] == GUARDRAIL_REDACTED_MESSAGE
+    assert sensitive not in str(history)
+    assert sensitive not in str(sessions)
+    assert "4111" not in str(history)
+    assert "4111" not in str(sessions)
 
 
 def test_supervisor_decide_ui_helper():

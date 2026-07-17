@@ -32,6 +32,7 @@ Fields: `sku`, `name`, `product_type`, `price_usd`, `warranty_months`, `support_
 | `confidence` | N | Deterministic evidence-capped score, 0.0–1.0 (ADR-009) |
 | `citations[]` | L | doc_id, excerpt |
 | `tool_calls[]` | L | name, args, result_ref |
+| `guardrail` | M | identifier, version, provider, input/output action and categories (never matched text) |
 | `cost_usd` | N | measured when available; otherwise null with `cost_status=not_measured` |
 | `created_at` / `updated_at` | S | |
 
@@ -49,6 +50,7 @@ Logs Insights. Required fields:
 | `plane` | `runtime` or `eval` |
 | `step` | Agent node name when `event_type=agent.step` |
 | `status` | Step: `ok` / `skipped` / `error`; conversation events use outcome status |
+| `attributes.guardrail_*` | Identifier/version and input/output action; no matched sensitive text |
 | `usage.input_tokens` / `output_tokens` / `total_tokens` | Present; null until Bedrock is measured |
 | `usage.cache_enabled` / `cache_status` | `false` / `not_configured` until model-region support is verified |
 | `usage.cache_read_tokens` / `cache_write_tokens` | Present; null until returned by Bedrock |

@@ -32,5 +32,7 @@ class AgentState(TypedDict):
     status: NotRequired[OutcomeStatus]
     hitl_reason: NotRequired[str | None]
     refund_amount_usd: NotRequired[float | None]
+    guardrail_input: NotRequired[dict[str, Any]]
+    guardrail_output: NotRequired[dict[str, Any]]
     notes: NotRequired[list[str]]
     error: NotRequired[str | None]

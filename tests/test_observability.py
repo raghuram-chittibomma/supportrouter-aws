@@ -41,10 +41,12 @@ def test_conversation_emits_correlated_step_traces():
     step_names = [event["step"] for event in events if event["event_type"] == "agent.step"]
     assert step_names == [
         "validate",
+        "guardrail_input",
         "classify",
         "route",
         "tools",
         "draft",
+        "guardrail_output",
         "confidence",
         "hitl",
     ]
@@ -57,6 +59,14 @@ def test_conversation_emits_correlated_step_traces():
         for event in events
         if event["event_type"] == "agent.step"
     )
+    for event in events:
+        if event["event_type"] != "agent.step":
+            continue
+        if event["step"] in {"guardrail_input", "guardrail_output"}:
+            assert event["attributes"]["guardrail_action"] == "allowed"
+            assert event["attributes"]["guardrail_version"] == "local-v0.2"
+        else:
+            assert event["attributes"]["guardrail_action"] is None
 
 
 def test_retrieve_branch_has_only_executed_steps():
@@ -71,10 +81,12 @@ def test_retrieve_branch_has_only_executed_steps():
     ]
     assert step_names == [
         "validate",
+        "guardrail_input",
         "classify",
         "route",
         "retrieve",
         "draft",
+        "guardrail_output",
         "confidence",
         "hitl",
     ]
@@ -91,9 +103,11 @@ def test_rejected_message_marks_short_circuited_steps_as_skipped():
     assert result["status"] == "rejected"
     assert steps == [
         ("validate", "ok"),
+        ("guardrail_input", "skipped"),
         ("classify", "skipped"),
         ("route", "skipped"),
         ("draft", "skipped"),
+        ("guardrail_output", "skipped"),
         ("confidence", "skipped"),
         ("hitl", "skipped"),
     ]
@@ -252,11 +266,13 @@ def test_logging_sink_emits_cloudwatch_compatible_json(caplog):
 def test_agent_step_catalog_covers_runtime_nodes():
     assert AGENT_STEPS == (
         "validate",
+        "guardrail_input",
         "classify",
         "route",
         "retrieve",
         "tools",
         "draft",
+        "guardrail_output",
         "confidence",
         "hitl",
     )

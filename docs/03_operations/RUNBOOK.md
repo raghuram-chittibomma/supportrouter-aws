@@ -33,7 +33,8 @@ the AWS completion of #16 after the Lambda tools in #14.
 Each local agent run emits structured JSON events with:
 
 - `correlation_id` linking the request to `session_id`
-- per-step traces for validate/classify/route/retrieve|tools/draft/confidence/HITL
+- per-step traces for validate/input guardrail/classify/route/retrieve|tools/
+  draft/output guardrail/confidence/HITL
 - step-local status (`ok`, `skipped`, `error`) separate from conversation outcome
 - explicit `usage` and `cost_usd` fields that remain `null` / `not_measured`
 
@@ -41,6 +42,21 @@ Default sink is process-local memory for tests. JSON-line logging is available
 for CloudWatch Logs Insights once the agent Lambda is deployed. The CDK
 Observability stack already creates the three dormancy-safe dashboards as stubs
 (`supportrouter-runtime`, `supportrouter-cost-signals`, `supportrouter-evals`).
+
+### Guardrail behavior
+
+Local runs apply the versioned deterministic policy at input and output
+boundaries. A block returns a fixed safe message, records only category names,
+sets `status=rejected`, and prevents downstream processing. It does not retain
+or emit matched sensitive text; the demo UI replaces the blocked user turn with
+`[redacted: guardrail-blocked input]`. Local matching is a narrow demo-regex
+fallback, not production-equivalent PII or safety coverage.
+
+The `SupportRouter-Guardrails` CDK stack synthesizes the managed Bedrock policy
+and immutable version. Local traces identify
+`supportrouter-local-guardrail/local-v0.2`; this means the deterministic fallback
+ran, not that AWS evaluated the content. After deployment, record the stack's
+`GuardrailIdentifier` and `GuardrailVersion` outputs in the runtime adapter.
 
 ### Prompt caching hooks
 
