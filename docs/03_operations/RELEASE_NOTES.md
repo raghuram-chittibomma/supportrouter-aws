@@ -13,5 +13,6 @@ Canonical releases: GitHub Releases. This file mirrors **measured** results only
 | OpenSearch Serverless | forbidden | ADR-007; synth tests assert no AOSS |
 
 Infra: CDK stacks for CostGuardrails, KnowledgeBase (S3 Vectors), versioned
-Bedrock Guardrails, Observability (≤3 dashboards, 14d logs), and EvalSchedule
-(rule only if `enable_reeval_schedule=true`).
+Bedrock Guardrails, isolated Lambda tools/on-demand DynamoDB, Observability
+(≤3 dashboards, 14d logs), and EvalSchedule (rule only if
+`enable_reeval_schedule=true`).

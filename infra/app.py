@@ -9,6 +9,7 @@ from supportrouter_infra.eval_schedule_stack import EvalScheduleStack
 from supportrouter_infra.guardrails_stack import GuardrailsStack
 from supportrouter_infra.knowledge_base_stack import KnowledgeBaseStack
 from supportrouter_infra.observability_stack import ObservabilityStack
+from supportrouter_infra.tools_stack import ToolsStack
 
 
 def _as_bool(value: object, default: bool = False) -> bool:
@@ -31,6 +32,7 @@ env = cdk.Environment(
 CostGuardrailsStack(app, "SupportRouter-CostGuardrails", env=env)
 KnowledgeBaseStack(app, "SupportRouter-KnowledgeBase", env=env)
 GuardrailsStack(app, "SupportRouter-Guardrails", env=env)
+ToolsStack(app, "SupportRouter-Tools", env=env)
 ObservabilityStack(app, "SupportRouter-Observability", env=env)
 EvalScheduleStack(
     app,

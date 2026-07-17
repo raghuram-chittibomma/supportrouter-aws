@@ -7,6 +7,7 @@
 | `SupportRouter-CostGuardrails` | AWS Budget ~$20/mo (ADR-008) |
 | `SupportRouter-KnowledgeBase` | Bedrock KB on **S3 Vectors** only (ADR-007) |
 | `SupportRouter-Guardrails` | Versioned Bedrock input/output safety policy (ADR-012) |
+| `SupportRouter-Tools` | Three isolated Lambda tools + on-demand DynamoDB tables (ADR-013) |
 | `SupportRouter-Observability` | ≤3 dashboards, 14-day log retention |
 | `SupportRouter-EvalSchedule` | Eval stub SFN; EventBridge rule **only** if `enable_reeval_schedule=true` |
 

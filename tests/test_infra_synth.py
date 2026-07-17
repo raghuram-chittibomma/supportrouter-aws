@@ -24,6 +24,10 @@ from supportrouter_infra.guardrails_stack import (  # noqa: E402
 )
 from supportrouter_infra.knowledge_base_stack import KnowledgeBaseStack  # noqa: E402
 from supportrouter_infra.observability_stack import ObservabilityStack  # noqa: E402
+from supportrouter_infra.tools_stack import (  # noqa: E402
+    ToolsStack,
+    tool_asset_excludes,
+)
 
 
 @pytest.fixture
@@ -167,3 +171,218 @@ def test_bedrock_guardrail_covers_input_output_and_version(env: cdk.Environment)
     }.issubset(BEDROCK_GUARDRAIL_POLICY_SPEC["pii_entity_types"])
     assert '"InputEnabled": true' in raw
     assert '"OutputEnabled": true' in raw
+
+
+def test_tools_stack_has_three_isolated_lambda_roles(env: cdk.Environment) -> None:
+    app = cdk.App()
+    stack = ToolsStack(app, "Tools", env=env)
+    template = Template.from_stack(stack)
+    raw = template.to_json()
+
+    template.resource_count_is("AWS::DynamoDB::Table", 3)
+    template.resource_count_is("AWS::Lambda::Function", 3)
+    template.resource_count_is("AWS::IAM::Role", 3)
+    template.resource_count_is("AWS::Logs::LogGroup", 3)
+    template.has_resource_properties(
+        "AWS::DynamoDB::Table",
+        {"BillingMode": "PAY_PER_REQUEST"},
+    )
+    template.has_resource_properties(
+        "AWS::Lambda::Function",
+        {
+            "Runtime": "python3.12",
+            "Architectures": ["arm64"],
+            "MemorySize": 128,
+            "Timeout": 5,
+        },
+    )
+    template.has_resource_properties(
+        "AWS::Logs::LogGroup",
+        {"RetentionInDays": 14},
+    )
+
+    functions = {
+        resource["Properties"]["Handler"]: resource["Properties"]
+        for resource in raw["Resources"].values()
+        if resource["Type"] == "AWS::Lambda::Function"
+    }
+    assert set(functions) == {
+        "get_order_status.handler",
+        "initiate_return.handler",
+        "issue_refund.handler",
+    }
+    assert set(
+        functions["get_order_status.handler"]["Environment"]["Variables"]
+    ) == {"ORDERS_TABLE_NAME"}
+    assert set(
+        functions["initiate_return.handler"]["Environment"]["Variables"]
+    ) == {"ORDERS_TABLE_NAME", "RETURNS_TABLE_NAME"}
+    assert set(
+        functions["issue_refund.handler"]["Environment"]["Variables"]
+    ) == {"ORDERS_TABLE_NAME", "REFUNDS_TABLE_NAME"}
+    role_ids = {
+        properties["Role"]["Fn::GetAtt"][0]
+        for properties in functions.values()
+    }
+    assert len(role_ids) == 3
+    roles = [
+        resource["Properties"]
+        for resource in raw["Resources"].values()
+        if resource["Type"] == "AWS::IAM::Role"
+    ]
+    assert all("ManagedPolicyArns" not in role for role in roles)
+    serialized = json.dumps(raw)
+    assert "AWS::EC2::VPC" not in serialized
+    assert "AWS::EC2::SecurityGroup" not in serialized
+
+
+def test_each_tool_asset_excludes_sibling_handlers() -> None:
+    assert tool_asset_excludes("issue_refund.handler") == [
+        "__pycache__",
+        "*.pyc",
+        "get_order_status.py",
+        "initiate_return.py",
+    ]
+
+
+def test_refund_lambda_iam_cannot_write_unrelated_tables(env: cdk.Environment) -> None:
+    app = cdk.App()
+    stack = ToolsStack(app, "ToolsIam", env=env)
+    raw = Template.from_stack(stack).to_json()
+    resources = raw["Resources"]
+
+    refund_function = next(
+        resource["Properties"]
+        for resource in resources.values()
+        if resource["Type"] == "AWS::Lambda::Function"
+        and resource["Properties"]["Handler"] == "issue_refund.handler"
+    )
+    refund_role_id = refund_function["Role"]["Fn::GetAtt"][0]
+    refund_policy = next(
+        resource["Properties"]["PolicyDocument"]
+        for resource in resources.values()
+        if resource["Type"] == "AWS::IAM::Policy"
+        and {"Ref": refund_role_id} in resource["Properties"]["Roles"]
+    )
+    statements = refund_policy["Statement"]
+    dynamodb_statements = [
+        statement
+        for statement in statements
+        if any(
+            str(action).startswith("dynamodb:")
+            for action in (
+                statement["Action"]
+                if isinstance(statement["Action"], list)
+                else [statement["Action"]]
+            )
+        )
+    ]
+
+    assert {
+        tuple(
+            action
+            if isinstance(action, list)
+            else [action]
+        )
+        for action in [statement["Action"] for statement in dynamodb_statements]
+    } == {("dynamodb:GetItem",), ("dynamodb:PutItem",)}
+
+    write_statement = next(
+        statement
+        for statement in dynamodb_statements
+        if statement["Action"] == "dynamodb:PutItem"
+    )
+    write_resources = (
+        write_statement["Resource"]
+        if isinstance(write_statement["Resource"], list)
+        else [write_statement["Resource"]]
+    )
+    assert len(write_resources) == 1
+    write_table_id = write_resources[0]["Fn::GetAtt"][0]
+    assert "RefundRequests" in write_table_id
+    assert "Orders" not in write_table_id
+    assert "Returns" not in write_table_id
+
+    serialized = json.dumps(refund_policy)
+    assert '"dynamodb:*"' not in serialized
+    assert '"Resource": "*"' not in serialized
+
+
+@pytest.mark.parametrize(
+    ("handler", "read_table_fragments", "write_table_fragment"),
+    [
+        ("get_order_status.handler", {"Orders"}, None),
+        ("initiate_return.handler", {"Orders", "Returns"}, "Returns"),
+        (
+            "issue_refund.handler",
+            {"Orders", "RefundRequests"},
+            "RefundRequests",
+        ),
+    ],
+)
+def test_each_tool_role_has_only_its_required_write_target(
+    env: cdk.Environment,
+    handler: str,
+    read_table_fragments: set[str],
+    write_table_fragment: str | None,
+) -> None:
+    app = cdk.App()
+    stack_name = handler.split(".")[0].replace("_", "-")
+    stack = ToolsStack(app, f"Tools-{stack_name}", env=env)
+    resources = Template.from_stack(stack).to_json()["Resources"]
+    function = next(
+        resource["Properties"]
+        for resource in resources.values()
+        if resource["Type"] == "AWS::Lambda::Function"
+        and resource["Properties"]["Handler"] == handler
+    )
+    role_id = function["Role"]["Fn::GetAtt"][0]
+    policy = next(
+        resource["Properties"]["PolicyDocument"]
+        for resource in resources.values()
+        if resource["Type"] == "AWS::IAM::Policy"
+        and {"Ref": role_id} in resource["Properties"]["Roles"]
+    )
+    write_statements = [
+        statement
+        for statement in policy["Statement"]
+        if statement["Action"] == "dynamodb:PutItem"
+    ]
+    read_statements = [
+        statement
+        for statement in policy["Statement"]
+        if statement["Action"] == "dynamodb:GetItem"
+    ]
+    assert len(read_statements) == 1
+    read_resources = read_statements[0]["Resource"]
+    if not isinstance(read_resources, list):
+        read_resources = [read_resources]
+    read_table_ids = {
+        resource["Fn::GetAtt"][0]
+        for resource in read_resources
+    }
+    assert all(
+        any(fragment in table_id for table_id in read_table_ids)
+        for fragment in read_table_fragments
+    )
+    assert len(read_table_ids) == len(read_table_fragments)
+
+    serialized = json.dumps(policy)
+    for forbidden_action in (
+        "dynamodb:BatchWriteItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:UpdateItem",
+    ):
+        assert forbidden_action not in serialized
+
+    if write_table_fragment is None:
+        assert write_statements == []
+        return
+    assert len(write_statements) == 1
+    resources_for_write = write_statements[0]["Resource"]
+    if not isinstance(resources_for_write, list):
+        resources_for_write = [resources_for_write]
+    assert len(resources_for_write) == 1
+    assert write_table_fragment in resources_for_write[0]["Fn::GetAtt"][0]

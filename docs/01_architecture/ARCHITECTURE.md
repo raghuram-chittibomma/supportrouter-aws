@@ -70,7 +70,7 @@ All figures above are **estimated** until Billing/scorecard evidence exists (mea
 See [`DECISIONS/`](DECISIONS/). Key ADRs: **007** (S3 Vectors), **008**
 (dormancy), **009** (deterministic confidence policy), **010** (refund approval
 lifecycle), **011** (structured observability events), **012** (guardrail
-boundaries).
+boundaries), **013** (Lambda tool isolation).
 
 Local runtime emits structured step traces with request `correlation_id` →
 `session_id` linkage. Token/cost fields are always present and stay
@@ -80,6 +80,10 @@ Local input/output guardrail nodes provide deterministic test coverage without
 claiming managed Guardrails execution. The deployable Bedrock policy and
 version are synthesized by `SupportRouter-Guardrails`; live invocation is
 deferred to the Bedrock runtime adapter.
+
+The three order tools are independently deployable Lambdas with separate roles
+and resource-scoped DynamoDB access (ADR-013). The local graph still invokes
+contract-compatible in-process stubs until the runtime Lambda adapter lands.
 
 ## Future migration
 
