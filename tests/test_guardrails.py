@@ -9,8 +9,9 @@ import pytest
 
 import supportrouter.graph as graph_module
 from evals.guardrail_harness import run_guardrail_harness
-from supportrouter.graph import output_guardrail_node, run_agent
+from supportrouter.graph import input_guardrail_node, output_guardrail_node, run_agent
 from supportrouter.guardrails import (
+    GUARDRAIL_REDACTED_MESSAGE,
     LOCAL_GUARDRAIL_IDENTIFIER,
     LOCAL_GUARDRAIL_VERSION,
     assess_text,
@@ -57,8 +58,8 @@ def test_guardrail_eval_gate_passes_without_claiming_managed_execution():
     assert scorecard["execution_mode"] == "local_deterministic"
     assert scorecard["managed_guardrail_executed"] is False
     assert scorecard["summary"] == {
-        "scenario_count": 14,
-        "passed": 14,
+        "scenario_count": 17,
+        "passed": 17,
         "overall_pass": True,
     }
 
@@ -92,6 +93,8 @@ def test_synthetic_adversarial_inputs_are_blocked(text: str, category: str):
         "Can I return an unused VoltEdge charger?",
         "Was my $75 refund prepared?",
         "Tracking reference 123456789 is synthetic.",
+        "Should I buy a VoltEdge charger?",
+        "Should I buy replacement batteries for order VE-1001?",
     ],
 )
 def test_support_requests_do_not_trigger_local_guardrail(text: str):
@@ -120,12 +123,35 @@ def test_input_guardrail_blocks_before_classification_and_tools():
     assert end["attributes"]["guardrail_output_action"] == "skipped"
 
 
+def test_input_guardrail_redacts_blocked_text_in_graph_state_update():
+    update = input_guardrail_node(
+        {
+            "session_id": "session-redact",
+            "message": "My synthetic SSN is 123-45-6789",
+            "notes": [],
+        }
+    )
+
+    assert update["message"] == GUARDRAIL_REDACTED_MESSAGE
+    assert "123-45-6789" not in json.dumps(update)
+
+
 def test_safe_run_records_both_guardrail_paths_as_allowed():
     result = run_agent("Where is order VE-1001?")
 
     assert result["status"] == "resolved"
     assert result["guardrail"]["input"]["action"] == "allowed"
     assert result["guardrail"]["output"]["action"] == "allowed"
+
+
+def test_product_purchase_question_is_not_misclassified_as_financial_advice():
+    result = run_agent(
+        "Should I buy this VoltEdge charger to work with my device?"
+    )
+
+    assert result["guardrail"]["input"]["action"] == "allowed"
+    assert result["task_type"] == "product_question"
+    assert result["status"] == "resolved"
 
 
 def test_output_guardrail_replaces_blocked_content_without_echoing_it():

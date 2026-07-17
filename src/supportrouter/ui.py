@@ -9,15 +9,13 @@ from typing import Any
 import gradio as gr
 
 from supportrouter.graph import run_agent
+from supportrouter.guardrails import GUARDRAIL_REDACTED_MESSAGE
 from supportrouter.sessions import (
     decide_hitl,
     get_approval_request,
     list_sessions,
     save_session,
 )
-
-GUARDRAIL_REDACTED_MESSAGE = "[redacted: guardrail-blocked input]"
-
 
 def format_customer_reply(result: dict[str, Any]) -> str:
     citations = result.get("citations") or []

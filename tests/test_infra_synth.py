@@ -134,6 +134,16 @@ def test_bedrock_guardrail_covers_input_output_and_version(env: cdk.Environment)
         },
     )
     raw = json.dumps(template.to_json())
+    version_logical_ids = [
+        logical_id
+        for logical_id, resource in template.to_json()["Resources"].items()
+        if resource["Type"] == "AWS::Bedrock::GuardrailVersion"
+    ]
+    assert len(version_logical_ids) == 1
+    assert (
+        BEDROCK_GUARDRAIL_POLICY_SHA256[:12].lower()
+        in version_logical_ids[0].lower()
+    )
     assert "DangerousAssistance" in raw
     assert "FinancialAdvice" in raw
     assert "CREDIT_DEBIT_CARD_NUMBER" in raw

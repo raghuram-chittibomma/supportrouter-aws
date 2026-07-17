@@ -64,7 +64,7 @@ def test_conversation_emits_correlated_step_traces():
             continue
         if event["step"] in {"guardrail_input", "guardrail_output"}:
             assert event["attributes"]["guardrail_action"] == "allowed"
-            assert event["attributes"]["guardrail_version"] == "local-v0.1"
+            assert event["attributes"]["guardrail_version"] == "local-v0.2"
         else:
             assert event["attributes"]["guardrail_action"] is None
 

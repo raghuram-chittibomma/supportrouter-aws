@@ -19,7 +19,7 @@ Place guardrail nodes at two explicit graph boundaries:
 2. after answer drafting and before confidence/HITL decisions
 
 The local boundary uses a deterministic, versioned policy
-(`supportrouter-local-guardrail`, `local-v0.1`) that blocks high-risk synthetic
+(`supportrouter-local-guardrail`, `local-v0.2`) that blocks high-risk synthetic
 PII patterns, dangerous/self-harm assistance, and financial advice. It records
 categories but never matched text. A block replaces content with a fixed safe
 message, sets the conversation to `rejected`, and prevents downstream

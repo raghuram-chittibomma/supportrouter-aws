@@ -11,6 +11,7 @@ from langgraph.graph import END, START, StateGraph
 from supportrouter.classifier import classify
 from supportrouter.decision import hitl_decision, score_confidence
 from supportrouter.guardrails import (
+    GUARDRAIL_REDACTED_MESSAGE,
     LOCAL_GUARDRAIL_IDENTIFIER,
     LOCAL_GUARDRAIL_VERSION,
     assess_text,
@@ -74,6 +75,7 @@ def input_guardrail_node(state: AgentState) -> dict[str, Any]:
         result.update(
             {
                 "error": "guardrail_input_blocked",
+                "message": GUARDRAIL_REDACTED_MESSAGE,
                 "status": "rejected",
                 "answer": blocked_message(
                     stage="input",

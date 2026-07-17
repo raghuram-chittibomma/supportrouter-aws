@@ -7,7 +7,8 @@ from dataclasses import asdict, dataclass
 from typing import Literal
 
 LOCAL_GUARDRAIL_IDENTIFIER = "supportrouter-local-guardrail"
-LOCAL_GUARDRAIL_VERSION = "local-v0.1"
+LOCAL_GUARDRAIL_VERSION = "local-v0.2"
+GUARDRAIL_REDACTED_MESSAGE = "[redacted: guardrail-blocked input]"
 LOCAL_POLICY_CAPABILITIES = frozenset(
     {
         "pii",
@@ -27,6 +28,10 @@ _US_SSN_UNDASHED = re.compile(
     re.IGNORECASE,
 )
 _PHONE = re.compile(r"(?<!\d)(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}(?!\d)")
+_PHONE_UNFORMATTED = re.compile(
+    r"\b(?:phone|call|text)\b.{0,40}(?<!\d)\d{10}(?!\d)",
+    re.IGNORECASE,
+)
 _CARD_CANDIDATE = re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)")
 _AWS_ACCESS_KEY = re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")
 
@@ -52,8 +57,7 @@ _DENIED_TOPIC_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "financial_advice",
         re.compile(
-            r"(?:\bshould\s+i\s+(?:buy|sell|invest)\b|"
-            r"\b(?:buy|sell|purchas(?:e|ing)|invest\s+in|recommend|"
+            r"(?:\b(?:buy|sell|purchas(?:e|ing)|invest\s+in|recommend|"
             r"consider\s+(?:buying|purchasing))\b.{0,30}\b"
             r"(?:stocks?|shares?|crypto|bitcoin)\b|"
             r"\b(?:stocks?|shares?|crypto)\b.{0,20}\b"
@@ -88,7 +92,7 @@ def assess_text(text: str, *, stage: GuardrailStage) -> GuardrailAssessment:
         categories.append("pii_email")
     if _US_SSN_DASHED.search(normalized) or _US_SSN_UNDASHED.search(normalized):
         categories.append("pii_us_ssn")
-    if _PHONE.search(normalized):
+    if _PHONE.search(normalized) or _PHONE_UNFORMATTED.search(normalized):
         categories.append("pii_phone")
     if _AWS_ACCESS_KEY.search(normalized):
         categories.append("pii_aws_access_key")

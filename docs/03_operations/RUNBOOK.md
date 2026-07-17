@@ -54,7 +54,7 @@ fallback, not production-equivalent PII or safety coverage.
 
 The `SupportRouter-Guardrails` CDK stack synthesizes the managed Bedrock policy
 and immutable version. Local traces identify
-`supportrouter-local-guardrail/local-v0.1`; this means the deterministic fallback
+`supportrouter-local-guardrail/local-v0.2`; this means the deterministic fallback
 ran, not that AWS evaluated the content. After deployment, record the stack's
 `GuardrailIdentifier` and `GuardrailVersion` outputs in the runtime adapter.
 
