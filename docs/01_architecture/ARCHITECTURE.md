@@ -62,18 +62,24 @@ All figures above are **estimated** until Billing/scorecard evidence exists (mea
 | Escalation | Confidence scorer; view-only locally (disposition later) |
 | Cost optimization | Model router, prompt caching, dormancy ops, observability |
 | Quality proof | Eval plane, scorecards, golden scenarios |
-| Safety | Bedrock Guardrails, deterministic validation |
+| Safety | Bedrock Guardrails, deterministic local boundary, application validation |
 | IaC / ops | CDK (no VPC), teardown/reseed, CloudWatch retention, Budget |
 
 ## ADRs
 
 See [`DECISIONS/`](DECISIONS/). Key ADRs: **007** (S3 Vectors), **008**
 (dormancy), **009** (deterministic confidence policy), **010** (refund approval
-lifecycle), **011** (structured observability events).
+lifecycle), **011** (structured observability events), **012** (guardrail
+boundaries).
 
 Local runtime emits structured step traces with request `correlation_id` →
 `session_id` linkage. Token/cost fields are always present and stay
 `not_measured` until Bedrock usage is recorded.
+
+Local input/output guardrail nodes provide deterministic test coverage without
+claiming managed Guardrails execution. The deployable Bedrock policy and
+version are synthesized by `SupportRouter-Guardrails`; live invocation is
+deferred to the Bedrock runtime adapter.
 
 ## Future migration
 

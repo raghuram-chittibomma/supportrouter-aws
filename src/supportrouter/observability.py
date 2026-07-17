@@ -21,11 +21,13 @@ LOGGER = logging.getLogger("supportrouter.observability")
 
 AGENT_STEPS = (
     "validate",
+    "guardrail_input",
     "classify",
     "route",
     "retrieve",
     "tools",
     "draft",
+    "guardrail_output",
     "confidence",
     "hitl",
 )
@@ -177,6 +179,11 @@ def instrument_node(step_name: str, node_fn):
         duration_ms = round((time.perf_counter() - started) * 1000, 3)
         notes = list(result.get("notes") or state.get("notes") or [])
         conversation_status = result.get("status") or state.get("status")
+        guardrail: dict[str, Any] = {}
+        if step_name == "guardrail_input":
+            guardrail = result.get("guardrail_input") or {}
+        elif step_name == "guardrail_output":
+            guardrail = result.get("guardrail_output") or {}
         emit_event(
             event_type="agent.step",
             session_id=str(result.get("session_id") or session_id),
@@ -191,6 +198,9 @@ def instrument_node(step_name: str, node_fn):
                 "note": notes[-1] if notes else None,
                 "conversation_status": conversation_status,
                 "has_error": bool(result.get("error") or state.get("error")),
+                "guardrail_action": guardrail.get("action"),
+                "guardrail_identifier": guardrail.get("guardrail_identifier"),
+                "guardrail_version": guardrail.get("guardrail_version"),
             },
         )
         return result
@@ -226,6 +236,7 @@ def emit_conversation_end(
     plane: str = PLANE_RUNTIME,
     error_type: str | None = None,
 ) -> dict[str, Any]:
+    guardrail = result.get("guardrail") or {}
     return emit_event(
         event_type="conversation.end",
         session_id=session_id,
@@ -242,6 +253,10 @@ def emit_conversation_end(
             "citation_count": len(result.get("citations") or []),
             "approval_id": result.get("approval_id"),
             "error_type": error_type,
+            "guardrail_identifier": guardrail.get("identifier"),
+            "guardrail_version": guardrail.get("version"),
+            "guardrail_input_action": (guardrail.get("input") or {}).get("action"),
+            "guardrail_output_action": (guardrail.get("output") or {}).get("action"),
         },
     )
 

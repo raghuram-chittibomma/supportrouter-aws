@@ -35,6 +35,15 @@ These artifacts are diagnostic only. They do not satisfy the live-model,
 LLM-as-judge, or measured-cost acceptance criteria in issue #17. Resolve model
 IDs in #24 and judge choice in #25 before producing a release scorecard.
 
+## Guardrail adversarial set
+
+`evals/datasets/v0.1_guardrails.json` versions synthetic input/output cases for
+PII, dangerous and self-harm assistance, financial advice, and support-domain
+negative controls. `evals.guardrail_harness.run_guardrail_harness` produces the
+local deterministic gate and explicitly records
+`managed_guardrail_executed=false`. Managed Bedrock Guardrail assessments must
+run against the same cases when the live runtime adapter is enabled.
+
 ## Judge rubric
 
 The draft rubric is versioned at `evals/rubrics/v0.1_judge.json`. It scores

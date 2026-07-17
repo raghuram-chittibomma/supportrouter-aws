@@ -6,6 +6,7 @@ import aws_cdk as cdk
 
 from supportrouter_infra.cost_guardrails_stack import CostGuardrailsStack
 from supportrouter_infra.eval_schedule_stack import EvalScheduleStack
+from supportrouter_infra.guardrails_stack import GuardrailsStack
 from supportrouter_infra.knowledge_base_stack import KnowledgeBaseStack
 from supportrouter_infra.observability_stack import ObservabilityStack
 
@@ -29,6 +30,7 @@ env = cdk.Environment(
 
 CostGuardrailsStack(app, "SupportRouter-CostGuardrails", env=env)
 KnowledgeBaseStack(app, "SupportRouter-KnowledgeBase", env=env)
+GuardrailsStack(app, "SupportRouter-Guardrails", env=env)
 ObservabilityStack(app, "SupportRouter-Observability", env=env)
 EvalScheduleStack(
     app,

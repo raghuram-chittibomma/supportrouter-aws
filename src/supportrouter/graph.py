@@ -10,6 +10,13 @@ from langgraph.graph import END, START, StateGraph
 
 from supportrouter.classifier import classify
 from supportrouter.decision import hitl_decision, score_confidence
+from supportrouter.guardrails import (
+    LOCAL_GUARDRAIL_IDENTIFIER,
+    LOCAL_GUARDRAIL_VERSION,
+    assess_text,
+    blocked_message,
+    skipped_assessment,
+)
 from supportrouter.observability import (
     PLANE_EVAL,
     PLANE_RUNTIME,
@@ -53,6 +60,29 @@ def validate_node(state: AgentState) -> dict[str, Any]:
         "error": None,
         "status": "open",
     }
+
+
+def input_guardrail_node(state: AgentState) -> dict[str, Any]:
+    if state.get("error"):
+        return {"guardrail_input": skipped_assessment(stage="input").as_dict()}
+    assessment = assess_text(state.get("message") or "", stage="input")
+    result: dict[str, Any] = {
+        "guardrail_input": assessment.as_dict(),
+        "notes": _notes(state) + [f"guardrail_input:{assessment.action}"],
+    }
+    if assessment.action == "blocked":
+        result.update(
+            {
+                "error": "guardrail_input_blocked",
+                "status": "rejected",
+                "answer": blocked_message(
+                    stage="input",
+                    categories=assessment.categories,
+                ),
+                "confidence": 0.0,
+            }
+        )
+    return result
 
 
 def classify_node(state: AgentState) -> dict[str, Any]:
@@ -179,6 +209,29 @@ def draft_node(state: AgentState) -> dict[str, Any]:
     }
 
 
+def output_guardrail_node(state: AgentState) -> dict[str, Any]:
+    if state.get("error"):
+        return {"guardrail_output": skipped_assessment(stage="output").as_dict()}
+    assessment = assess_text(state.get("answer") or "", stage="output")
+    result: dict[str, Any] = {
+        "guardrail_output": assessment.as_dict(),
+        "notes": _notes(state) + [f"guardrail_output:{assessment.action}"],
+    }
+    if assessment.action == "blocked":
+        result.update(
+            {
+                "error": "guardrail_output_blocked",
+                "status": "rejected",
+                "answer": blocked_message(
+                    stage="output",
+                    categories=assessment.categories,
+                ),
+                "confidence": 0.0,
+            }
+        )
+    return result
+
+
 def confidence_node(state: AgentState) -> dict[str, Any]:
     if state.get("error"):
         return {}
@@ -225,16 +278,25 @@ def after_route(
 def build_graph():
     graph = StateGraph(AgentState)
     graph.add_node("validate", instrument_node("validate", validate_node))
+    graph.add_node(
+        "guardrail_input",
+        instrument_node("guardrail_input", input_guardrail_node),
+    )
     graph.add_node("classify", instrument_node("classify", classify_node))
     graph.add_node("route", instrument_node("route", route_node))
     graph.add_node("retrieve", instrument_node("retrieve", retrieve_node))
     graph.add_node("tools", instrument_node("tools", tools_node))
     graph.add_node("draft", instrument_node("draft", draft_node))
+    graph.add_node(
+        "guardrail_output",
+        instrument_node("guardrail_output", output_guardrail_node),
+    )
     graph.add_node("confidence", instrument_node("confidence", confidence_node))
     graph.add_node("hitl", instrument_node("hitl", hitl_node))
 
     graph.add_edge(START, "validate")
-    graph.add_edge("validate", "classify")
+    graph.add_edge("validate", "guardrail_input")
+    graph.add_edge("guardrail_input", "classify")
     graph.add_edge("classify", "route")
     graph.add_conditional_edges(
         "route",
@@ -243,7 +305,8 @@ def build_graph():
     )
     graph.add_edge("retrieve", "draft")
     graph.add_edge("tools", "draft")
-    graph.add_edge("draft", "confidence")
+    graph.add_edge("draft", "guardrail_output")
+    graph.add_edge("guardrail_output", "confidence")
     graph.add_edge("confidence", "hitl")
     graph.add_edge("hitl", END)
     return graph.compile()
@@ -314,6 +377,13 @@ def run_agent(
         "status": final.get("status"),
         "hitl_reason": final.get("hitl_reason"),
         "refund_amount_usd": final.get("refund_amount_usd"),
+        "guardrail": {
+            "identifier": LOCAL_GUARDRAIL_IDENTIFIER,
+            "version": LOCAL_GUARDRAIL_VERSION,
+            "provider": "local_deterministic",
+            "input": final.get("guardrail_input"),
+            "output": final.get("guardrail_output"),
+        },
         "notes": final.get("notes") or [],
         "usage": {
             "input_tokens": None,

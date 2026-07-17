@@ -16,6 +16,8 @@ from supportrouter.sessions import (
     save_session,
 )
 
+GUARDRAIL_REDACTED_MESSAGE = "[redacted: guardrail-blocked input]"
+
 
 def format_customer_reply(result: dict[str, Any]) -> str:
     citations = result.get("citations") or []
@@ -42,11 +44,15 @@ def customer_chat(message: str, history: list) -> tuple[list, str]:
     if not text:
         return history, ""
     result = run_agent(text)
-    result["message"] = text
+    input_action = ((result.get("guardrail") or {}).get("input") or {}).get("action")
+    stored_message = (
+        GUARDRAIL_REDACTED_MESSAGE if input_action == "blocked" else text
+    )
+    result["message"] = stored_message
     result = save_session(result)
     reply = format_customer_reply(result)
     history = history + [
-        {"role": "user", "content": text},
+        {"role": "user", "content": stored_message},
         {"role": "assistant", "content": reply},
     ]
     return history, ""
