@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from threading import Lock
 from typing import Any
 
+from supportrouter.observability import emit_hitl_decision
 from supportrouter.schemas import ApprovalRequest
 
 _LOCK = Lock()
@@ -20,6 +21,8 @@ def save_session(result: dict[str, Any]) -> dict[str, Any]:
     if not session_id:
         raise ValueError("session_id required")
     record = deepcopy(result)
+    if not record.get("correlation_id"):
+        record["correlation_id"] = record["session_id"]
     with _LOCK:
         existing = _SESSIONS.get(session_id)
         approval_id = f"approval-{session_id}"
@@ -86,6 +89,7 @@ def decide_hitl(
     if decision_norm not in {"approve", "reject"}:
         raise ValueError("decision must be 'approve' or 'reject'")
 
+    trace_fields: dict[str, str | None] | None = None
     with _LOCK:
         record = _SESSIONS.get(session_id)
         if record is None:
@@ -139,7 +143,20 @@ def decide_hitl(
                 "No refund was executed in this local demo."
                 f"{f' Note: {note}' if note else ''})_"
             ).strip()
-        return deepcopy(record)
+        trace_fields = {
+            "session_id": session_id,
+            "correlation_id": str(record.get("correlation_id") or session_id),
+            "decision": decision_norm,
+            "status": str(record["status"]),
+            "approval_id": str(approval_id) if approval_id else None,
+            "plane": str(record.get("plane") or "runtime"),
+        }
+        updated = deepcopy(record)
+
+    if trace_fields is None:  # defensive invariant; all transition paths set it
+        raise RuntimeError("HITL transition completed without trace fields")
+    emit_hitl_decision(**trace_fields)
+    return updated
 
 
 def clear_sessions() -> None:

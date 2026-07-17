@@ -28,6 +28,20 @@ Sessions and approval records live only in the local process and are lost on
 restart. DynamoDB conditional writes and real refund execution are deferred to
 the AWS completion of #16 after the Lambda tools in #14.
 
+### Local observability
+
+Each local agent run emits structured JSON events with:
+
+- `correlation_id` linking the request to `session_id`
+- per-step traces for validate/classify/route/retrieve|tools/draft/confidence/HITL
+- step-local status (`ok`, `skipped`, `error`) separate from conversation outcome
+- explicit `usage` and `cost_usd` fields that remain `null` / `not_measured`
+
+Default sink is process-local memory for tests. JSON-line logging is available
+for CloudWatch Logs Insights once the agent Lambda is deployed. The CDK
+Observability stack already creates the three dormancy-safe dashboards as stubs
+(`supportrouter-runtime`, `supportrouter-cost-signals`, `supportrouter-evals`).
+
 ## AWS deploy
 
 ```bash

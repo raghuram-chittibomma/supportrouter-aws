@@ -17,6 +17,7 @@ from typing import Any, Protocol, Sequence
 
 from evals.loader import ALLOWED_TOOLS, GOLDEN_DATASET_PATH, load_dataset
 from supportrouter.graph import run_agent
+from supportrouter.observability import PLANE_EVAL
 
 DEFAULT_CANDIDATE_MODELS = (
     "logical:nova-micro",
@@ -53,7 +54,7 @@ class LocalStubCandidateRunner:
 
     def run(self, scenario: dict[str, Any], requested_model_id: str) -> dict[str, Any]:
         started = time.perf_counter()
-        output = run_agent(scenario["input"])
+        output = run_agent(scenario["input"], plane=PLANE_EVAL)
         wall_time_ms = round((time.perf_counter() - started) * 1000, 3)
         return {
             "requested_model_id": requested_model_id,

@@ -69,7 +69,11 @@ All figures above are **estimated** until Billing/scorecard evidence exists (mea
 
 See [`DECISIONS/`](DECISIONS/). Key ADRs: **007** (S3 Vectors), **008**
 (dormancy), **009** (deterministic confidence policy), **010** (refund approval
-lifecycle).
+lifecycle), **011** (structured observability events).
+
+Local runtime emits structured step traces with request `correlation_id` →
+`session_id` linkage. Token/cost fields are always present and stay
+`not_measured` until Bedrock usage is recorded.
 
 ## Future migration
 
