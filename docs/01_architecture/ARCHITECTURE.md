@@ -23,6 +23,12 @@ API Gateway → Support Lambda (LangGraph)
 
 **Vector store:** Amazon **S3 Vectors** behind Bedrock Knowledge Bases ([ADR-007](DECISIONS/ADR-007-s3-vectors-over-opensearch.md)). OpenSearch Serverless is forbidden for SupportRouter (idle OCU floor).
 
+Retrieval defaults to the deterministic local corpus. The same citation
+contract can use the managed KB explicitly with
+`SUPPORTROUTER_RETRIEVER=bedrock` and `SUPPORTROUTER_KB_ID=<id>`. Managed
+retrieval failures are surfaced rather than silently falling back to local
+results. The KB role scopes S3 Vectors permissions to its bucket and index.
+
 ## Eval plane
 
 ```

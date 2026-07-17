@@ -9,6 +9,7 @@ description = "Eval-driven AI customer support agent for fictional VoltEdge Elec
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "boto3>=1.40",
     "langgraph>=0.2",
 ]
 

@@ -73,15 +73,22 @@ class KnowledgeBaseStack(cdk.Stack):
         kb_role.add_to_policy(
             iam.PolicyStatement(
                 actions=[
+                    "s3vectors:ListIndexes",
+                    "s3vectors:GetVectorBucket",
+                ],
+                resources=[vector_bucket.attr_vector_bucket_arn],
+            )
+        )
+        kb_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
                     "s3vectors:QueryVectors",
                     "s3vectors:GetVectors",
                     "s3vectors:PutVectors",
                     "s3vectors:DeleteVectors",
                     "s3vectors:GetIndex",
-                    "s3vectors:ListIndexes",
-                    "s3vectors:GetVectorBucket",
                 ],
-                resources=["*"],
+                resources=[vector_index.attr_index_arn],
             )
         )
         kb_role.add_to_policy(

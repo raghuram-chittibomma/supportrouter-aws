@@ -73,6 +73,60 @@ def test_knowledge_base_uses_s3_vectors_not_opensearch(env: cdk.Environment) -> 
     assert '"Type": "S3_VECTORS"' in raw or '"Type":"S3_VECTORS"' in raw
 
 
+def test_knowledge_base_role_scopes_s3_vector_permissions(
+    env: cdk.Environment,
+) -> None:
+    app = cdk.App()
+    stack = KnowledgeBaseStack(app, "KbIam", env=env)
+    resources = Template.from_stack(stack).to_json()["Resources"]
+    policies = [
+        resource["Properties"]["PolicyDocument"]
+        for resource in resources.values()
+        if resource["Type"] == "AWS::IAM::Policy"
+    ]
+    s3_vector_statements = [
+        statement
+        for policy in policies
+        for statement in policy["Statement"]
+        if any(
+            str(action).startswith("s3vectors:")
+            for action in (
+                statement["Action"]
+                if isinstance(statement["Action"], list)
+                else [statement["Action"]]
+            )
+        )
+    ]
+
+    assert len(s3_vector_statements) == 2
+    assert all(statement["Resource"] != "*" for statement in s3_vector_statements)
+
+    bucket_statement = next(
+        statement
+        for statement in s3_vector_statements
+        if "s3vectors:GetVectorBucket" in statement["Action"]
+    )
+    assert set(bucket_statement["Action"]) == {
+        "s3vectors:GetVectorBucket",
+        "s3vectors:ListIndexes",
+    }
+    assert "VectorBucket" in json.dumps(bucket_statement["Resource"])
+
+    index_statement = next(
+        statement
+        for statement in s3_vector_statements
+        if "s3vectors:QueryVectors" in statement["Action"]
+    )
+    assert set(index_statement["Action"]) == {
+        "s3vectors:DeleteVectors",
+        "s3vectors:GetIndex",
+        "s3vectors:GetVectors",
+        "s3vectors:PutVectors",
+        "s3vectors:QueryVectors",
+    }
+    assert "VectorIndex" in json.dumps(index_statement["Resource"])
+
+
 def test_eval_schedule_rule_absent_when_disabled(env: cdk.Environment) -> None:
     app = cdk.App()
     stack = EvalScheduleStack(app, "EvalOff", enable_reeval_schedule=False, env=env)
