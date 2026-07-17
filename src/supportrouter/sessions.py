@@ -136,7 +136,7 @@ def decide_hitl(
             record["answer"] = (
                 f"{record.get('answer') or ''}\n\n"
                 "_(Supervisor rejected the synthetic request. "
-                "No refund was executed."
+                "No refund was executed in this local demo."
                 f"{f' Note: {note}' if note else ''})_"
             ).strip()
         return deepcopy(record)

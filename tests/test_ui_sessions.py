@@ -95,7 +95,16 @@ def test_session_id_from_row_value():
     sid = "abc-123-session"
 
     class _Evt:
-        row_value = [sid, "pending_approval", "refund_request"]
+        row_value = [
+            sid,
+            "pending_approval",
+            "refund_request",
+            "159.99",
+            f"approval-{sid}",
+            "pending",
+            "over",
+            "msg",
+        ]
         index = (0, 1)
         value = "pending_approval"
 

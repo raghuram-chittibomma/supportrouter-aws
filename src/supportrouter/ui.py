@@ -216,7 +216,7 @@ def build_ui():
                     "reason",
                     "message",
                 ],
-                value=_escalation_rows,
+                value=[],
                 datatype=["str"] * 5,
                 interactive=False,
                 wrap=True,
