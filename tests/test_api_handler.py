@@ -70,6 +70,36 @@ def test_oversized_message_returns_400() -> None:
     assert response["statusCode"] == 400
 
 
+def test_oversized_session_id_returns_400() -> None:
+    sid = "s" * (api.MAX_SESSION_ID_CHARS + 1)
+    event = _event(json.dumps({"message": "hi", "session_id": sid}))
+    response = api.handle_chat_request(event, None)
+    assert response["statusCode"] == 400
+
+
+def test_oversized_body_returns_400() -> None:
+    filler = "a" * (api.MAX_BODY_BYTES + 100)
+    event = _event(json.dumps({"message": "hi", "extra": filler}))
+    response = api.handle_chat_request(event, None)
+    assert response["statusCode"] == 400
+
+
+def test_message_is_stripped_before_agent() -> None:
+    response = api.handle_chat_request(
+        _event(json.dumps({"message": "  Where is my order VE-1001?  "})), None
+    )
+    assert response["statusCode"] == 200
+
+
+def test_public_response_excludes_internal_fields() -> None:
+    response = api.handle_chat_request(
+        _event(json.dumps({"message": "Where is my order VE-1001?"})), None
+    )
+    body = json.loads(response["body"])
+    for internal in ("notes", "classifier_rationale", "prompt_cache", "usage"):
+        assert internal not in body
+
+
 def test_blank_session_id_rejected() -> None:
     event = _event(json.dumps({"message": "hi", "session_id": "  "}))
     response = api.handle_chat_request(event, None)

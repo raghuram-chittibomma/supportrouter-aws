@@ -10,13 +10,35 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 from typing import Any
 
 from supportrouter.graph import run_agent
 from supportrouter.observability import PLANE_RUNTIME, new_correlation_id
 
+logger = logging.getLogger(__name__)
+
 MAX_MESSAGE_CHARS = 4000
+MAX_SESSION_ID_CHARS = 200
+MAX_BODY_BYTES = 16 * 1024
 JSON_HEADERS = {"content-type": "application/json"}
+
+# Fields returned to HTTP clients. Internal aids (notes, classifier rationale,
+# prompt-cache digests) stay out of the public edge response.
+_PUBLIC_FIELDS = (
+    "session_id",
+    "correlation_id",
+    "task_type",
+    "model_id",
+    "answer",
+    "citations",
+    "confidence",
+    "status",
+    "hitl_reason",
+    "refund_amount_usd",
+    "guardrail",
+    "cost_status",
+)
 
 
 class BadRequest(Exception):
@@ -31,9 +53,11 @@ def _decode_body(event: dict[str, Any]) -> str:
         raise BadRequest("Request body must be a JSON string")
     if event.get("isBase64Encoded"):
         try:
-            body = base64.b64decode(body).decode("utf-8")
+            body = base64.b64decode(body, validate=True).decode("utf-8")
         except (ValueError, UnicodeDecodeError) as exc:
             raise BadRequest("Request body is not valid base64 UTF-8") from exc
+    if len(body.encode("utf-8")) > MAX_BODY_BYTES:
+        raise BadRequest(f"Request body exceeds {MAX_BODY_BYTES} bytes")
     return body
 
 
@@ -57,12 +81,24 @@ def parse_request(event: dict[str, Any]) -> tuple[str, str | None]:
         raise BadRequest(f"Field 'message' exceeds {MAX_MESSAGE_CHARS} characters")
 
     session_id = payload.get("session_id")
-    if session_id is not None and (
-        not isinstance(session_id, str) or not session_id.strip()
-    ):
-        raise BadRequest("Field 'session_id' must be a non-empty string when provided")
+    if session_id is not None:
+        if not isinstance(session_id, str) or not session_id.strip():
+            raise BadRequest(
+                "Field 'session_id' must be a non-empty string when provided"
+            )
+        if len(session_id) > MAX_SESSION_ID_CHARS:
+            raise BadRequest(
+                f"Field 'session_id' exceeds {MAX_SESSION_ID_CHARS} characters"
+            )
 
-    return message, (session_id.strip() if isinstance(session_id, str) else None)
+    return (
+        message.strip(),
+        session_id.strip() if isinstance(session_id, str) else None,
+    )
+
+
+def _public_result(result: dict[str, Any]) -> dict[str, Any]:
+    return {field: result.get(field) for field in _PUBLIC_FIELDS}
 
 
 def _response(
@@ -102,6 +138,9 @@ def handle_chat_request(
             plane=PLANE_RUNTIME,
         )
     except Exception:  # noqa: BLE001 — edge must not leak internals to callers
+        logger.exception(
+            "chat handler failed", extra={"correlation_id": correlation_id}
+        )
         return _response(
             500,
             {
@@ -111,8 +150,13 @@ def handle_chat_request(
             correlation_id=correlation_id,
         )
 
+    resolved_correlation_id = result.get("correlation_id") or correlation_id
     status_code = 200 if result.get("status") != "rejected" else 422
-    return _response(status_code, result, correlation_id=result["correlation_id"])
+    return _response(
+        status_code,
+        _public_result(result),
+        correlation_id=resolved_correlation_id,
+    )
 
 
 handler = handle_chat_request

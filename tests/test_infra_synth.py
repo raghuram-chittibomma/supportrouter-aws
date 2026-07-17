@@ -265,6 +265,8 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
             "Runtime": "python3.12",
             "Architectures": ["arm64"],
             "Handler": "supportrouter.api.handler",
+            "MemorySize": 256,
+            "Timeout": 30,
         },
     )
     template.has_resource_properties(

@@ -50,8 +50,10 @@ slice.
 ### HTTP chat edge
 
 `SupportRouter-Api` fronts the agent graph with a throttled HTTP API and a chat
-Lambda (`supportrouter.api.handler`). After deploy, call the stack's
-`ChatApiEndpoint` output:
+Lambda (`supportrouter.api.handler`). The route is unauthenticated by design for
+the synthetic demo; the throttle (10 rps / burst 20), a 16 KiB body cap, and a
+4000-char `message` cap bound abuse. Once runtime dependencies are bundled (see
+below), call the stack's `ChatApiEndpoint` output:
 
 ```bash
 curl -sS -X POST "$CHAT_API_ENDPOINT/chat" \

@@ -41,10 +41,15 @@ because the agent still uses local stubs.
 
 - The chat edge and CLI share one code path, so behavior stays consistent.
 - A compromised edge role can do nothing beyond writing its own logs.
-- Throttling and the input size cap keep a dormant deployment cheap.
+- Throttling plus body (16 KiB) and message (4000 char) caps keep a dormant
+  deployment cheap and bound abuse of the public route.
+- The route is unauthenticated by design for the synthetic demo. Authentication
+  (e.g. IAM or a JWT authorizer) is deferred with the runtime adapter.
+- The HTTP response is a curated projection (answer, citations, confidence,
+  status, ids, guardrail summary), not the full internal agent dict.
 - The Lambda asset packages `src/` (excluding the gradio UI module). A live
   deploy still requires bundling runtime dependencies (`langgraph`) via a layer
-  or container image; that packaging, Bedrock wiring, and measured latency/cost
-  remain deferred.
+  or container image; that packaging, live invocation wiring, Bedrock wiring, and
+  measured latency/cost are tracked in issue #57.
 - When the Bedrock runtime adapter lands, the edge gains only the specific
   model/tool permissions it then needs, preserving least privilege.
