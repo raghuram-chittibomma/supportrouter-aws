@@ -1,9 +1,10 @@
 """HTTP adapter that exposes the SupportRouter agent over API Gateway.
 
 This module is a thin, deterministic edge over :func:`run_agent`. It parses an
-API Gateway HTTP API (payload format 2.0) proxy event, runs the local agent, and
-returns a proxy-shaped response. It performs no AWS calls itself; the agent still
-uses local stubs, so a live deploy stays honest about being unmeasured.
+API Gateway HTTP API (payload format 2.0) proxy event, runs the local agent,
+persists the session/approval when DynamoDB tables are configured (#16), and
+returns a proxy-shaped response. Drafting remains a local stub, so Bedrock cost
+stays unmeasured.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from typing import Any
 
 from supportrouter.graph import run_agent
 from supportrouter.observability import PLANE_RUNTIME, new_correlation_id
+from supportrouter.sessions import save_session
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,8 @@ _PUBLIC_FIELDS = (
     "status",
     "hitl_reason",
     "refund_amount_usd",
+    "approval_id",
+    "approval_status",
     "guardrail",
     "cost_status",
 )
@@ -137,6 +141,7 @@ def handle_chat_request(
             correlation_id=correlation_id,
             plane=PLANE_RUNTIME,
         )
+        result = save_session(result)
     except Exception:  # noqa: BLE001 — edge must not leak internals to callers
         logger.exception(
             "chat handler failed", extra={"correlation_id": correlation_id}

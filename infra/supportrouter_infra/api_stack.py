@@ -1,9 +1,9 @@
-"""HTTP API edge that fronts the SupportRouter chat Lambda (ADR-014).
+"""HTTP API edge that fronts the SupportRouter chat Lambda (ADR-014 / ADR-017).
 
 Dormancy-safe: HTTP API (not REST) with pay-per-request pricing, throttled
-default stage, a 14-day log group, and a least-privilege role that can only write
-its own logs. The chat Lambda runs the local-stub agent, so no Bedrock, DynamoDB,
-or other data-plane permissions are granted here.
+default stage, a 14-day log group, and a least-privilege role. The chat Lambda
+still drafts with the local stub (no Bedrock). When Sessions and ApprovalRequests
+tables are present, the role may read/write only those tables for HITL (#16).
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ import jsii
 from aws_cdk import (
     aws_apigatewayv2 as apigwv2,
     aws_apigatewayv2_integrations as integrations,
+    aws_dynamodb as dynamodb,
     aws_iam as iam,
     aws_lambda as lambda_,
     aws_logs as logs,
@@ -130,6 +131,9 @@ class ApiStack(cdk.Stack):
         super().__init__(scope, construct_id, **kwargs)
         cdk.Tags.of(self).add("Project", PROJECT_NAME)
 
+        sessions = self._table("Sessions", "session_id")
+        approvals = self._table("ApprovalRequests", "approval_id")
+
         function_name = f"{PROJECT_NAME}-chat"
         log_group = logs.LogGroup(
             self,
@@ -149,6 +153,19 @@ class ApiStack(cdk.Stack):
                 sid="WriteOwnLogs",
                 actions=["logs:CreateLogStream", "logs:PutLogEvents"],
                 resources=[log_group.log_group_arn, f"{log_group.log_group_arn}:*"],
+            )
+        )
+        hitl_table_arns = [sessions.table_arn, approvals.table_arn]
+        role.add_to_policy(
+            iam.PolicyStatement(
+                sid="HitlSessionApprovalAccess",
+                actions=[
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:Scan",
+                    "dynamodb:TransactWriteItems",
+                ],
+                resources=hitl_table_arns,
             )
         )
 
@@ -180,7 +197,11 @@ class ApiStack(cdk.Stack):
             ),
             handler="supportrouter.api.handler",
             role=role,
-            environment={"PYTHONPATH": "/var/task/src:/var/task"},
+            environment={
+                "PYTHONPATH": "/var/task/src:/var/task",
+                "SESSIONS_TABLE_NAME": sessions.table_name,
+                "APPROVALS_TABLE_NAME": approvals.table_name,
+            },
             timeout=cdk.Duration.seconds(30),
             memory_size=256,
             log_group=log_group,
@@ -216,3 +237,19 @@ class ApiStack(cdk.Stack):
         cdk.CfnOutput(self, "ChatFunctionArn", value=chat_function.function_arn)
         cdk.CfnOutput(self, "ChatApiEndpoint", value=stage.url)
         cdk.CfnOutput(self, "ChatRoute", value=f"POST {CHAT_ROUTE}")
+        cdk.CfnOutput(self, "SessionsTableName", value=sessions.table_name)
+        cdk.CfnOutput(self, "ApprovalRequestsTableName", value=approvals.table_name)
+
+    def _table(self, logical_id: str, partition_key: str) -> dynamodb.Table:
+        return dynamodb.Table(
+            self,
+            logical_id,
+            table_name=f"{PROJECT_NAME}-{logical_id.lower()}",
+            partition_key=dynamodb.Attribute(
+                name=partition_key,
+                type=dynamodb.AttributeType.STRING,
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            encryption=dynamodb.TableEncryption.AWS_MANAGED,
+            removal_policy=cdk.RemovalPolicy.DESTROY,
+        )

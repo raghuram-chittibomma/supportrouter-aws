@@ -9,6 +9,8 @@ pip install -e ".[dev]"
 pytest
 python -m supportrouter.cli "Where is my order #VE-1001?"
 python -m supportrouter.cli --session-id demo-1 "Any update on VE-1001?"
+python -m supportrouter.cli list-pending
+python -m supportrouter.cli decide <session_id> approve --note "ok"
 ```
 
 ### Thin demo UI
@@ -19,15 +21,16 @@ python -m supportrouter.ui
 # Supervisor: Refresh queue → click a queue row → Approve/Reject selected session
 ```
 
-Supervisor reviews `pending_approval` / `escalated` sessions in the UI.
-Approve/Reject is restricted to explicit pending refund approval records;
-escalations are view-only in this local slice. Approval decisions are
-idempotent, conflicting retries are rejected, and the UI explicitly reports
-that no refund was executed.
+Supervisor reviews `pending_approval` / `escalated` sessions in the UI or via
+CLI `list-pending` / `decide`. Approve/Reject is restricted to explicit pending
+refund approval records; escalations are view-only in this slice. Approval
+decisions are idempotent, conflicting retries are rejected, and both paths
+report that no refund was executed (`execution_status=not_executed`).
 
-Sessions and approval records live only in the local process and are lost on
-restart. DynamoDB persistence for sessions/`ApprovalRequest` decisions and real
-refund execution are deferred to the AWS completion of #16.
+Without DynamoDB env vars, sessions live only in the local process and are lost
+on restart. With `SESSIONS_TABLE_NAME` and `APPROVALS_TABLE_NAME` set (ApiStack
+outputs after deploy), the same repository API persists to DynamoDB (ADR-017).
+Refund **execution** remains out of scope.
 
 ### Lambda tool contracts
 
@@ -235,6 +238,6 @@ judge scores, and token-derived cost estimates.
 
 ## Incident / escalation (product)
 
-Supervisor decides pending refund approvals and views escalated sessions via
-the thin Gradio demo UI (`python -m supportrouter.ui`). Escalation disposition
-and a supervisor CLI are not part of the local v0.1 slice.
+Supervisor decides pending refund approvals via the Gradio demo UI
+(`python -m supportrouter.ui`) or CLI (`list-pending` / `decide`). Escalation
+disposition is not part of the v0.1 slice.

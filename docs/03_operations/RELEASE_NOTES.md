@@ -14,6 +14,7 @@ Canonical releases: GitHub Releases. This file mirrors **measured** results only
 | Chat API end-to-end (warm) | measured ~407 ms | second live `POST /chat` |
 | Live golden eval (3 models × 2 tasks, capped) | overall_pass=true | `evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json` |
 | Live eval Bedrock cost (token × rates) | measured $0.0102 | same scorecard; basis published on-demand rates |
+| HITL DynamoDB persistence | deployed (Sessions + ApprovalRequests) | SupportRouter-Api outputs; ADR-017; cost not measured |
 | Idle cost (dormant month) | estimated ~$0–2 | ADR-008 assumptions; stacks destroyed |
 | OpenSearch Serverless | forbidden | ADR-007; synth tests assert no AOSS |
 

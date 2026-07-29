@@ -17,6 +17,7 @@ API Gateway → Support Lambda (LangGraph)
   → deterministic evidence-capped confidence score (ADR-009)
   → refund approval decision when amount > $100 (ADR-010)
   → low-confidence escalation (separate from refund approval)
+  → persist session + ApprovalRequest when DynamoDB configured (ADR-017)
   → response { answer, citations, confidence, status }
   → session + cost trace (DynamoDB / CloudWatch)
 ```

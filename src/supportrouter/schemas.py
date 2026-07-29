@@ -19,7 +19,7 @@ ApprovalExecutionStatus = Literal["not_executed"]
 
 
 class ApprovalRequest(TypedDict):
-    """Local approval contract; DynamoDB persistence lands in the AWS slice."""
+    """Refund approval contract; DynamoDB persistence via ADR-017 / #16."""
 
     approval_id: str
     session_id: str
