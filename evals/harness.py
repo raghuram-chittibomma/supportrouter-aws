@@ -154,10 +154,24 @@ def _select_scenarios(
 
 
 def _result_total_cost_usd(result: dict[str, Any]) -> float | None:
+    """Sum candidate + judge cost when the run's measured spend is complete.
+
+    Local-stub rows leave both null. Live rows that executed a candidate require
+    candidate cost. A completed or failed-closed judge attempt also requires
+    judge cost so scorecards do not claim ``measured`` while dropping judge tokens.
+    """
     candidate = result.get("cost_usd")
-    judge_cost = (result.get("judge") or {}).get("cost_usd")
+    judge = result.get("judge") or {}
+    judge_status = judge.get("status")
+    judge_cost = judge.get("cost_usd")
+
+    if result.get("candidate_executed") and candidate is None:
+        return None
+    if judge_status in {"completed", "error"} and judge_cost is None:
+        return None
     if candidate is None and judge_cost is None:
         return None
+
     total = 0.0
     if candidate is not None:
         total += float(candidate)
@@ -241,7 +255,10 @@ def run_harness(
 
     programmatic_passes = sum(1 for result in results if result["programmatic"]["pass"])
     candidates_executed = all(result["candidate_executed"] for result in results)
-    judge_ran = all(result["judge"]["status"] == "completed" for result in results)
+    judge_statuses = [result["judge"]["status"] for result in results]
+    judge_ran = all(status == "completed" for status in judge_statuses)
+    judge_errors = any(status == "error" for status in judge_statuses)
+    judge_not_run = any(status == "not_run" for status in judge_statuses)
     pass_states_complete = all(result["pass"] is not None for result in results)
     result_costs = [_result_total_cost_usd(result) for result in results]
     cost_measured = all(cost is not None for cost in result_costs)
@@ -250,7 +267,11 @@ def run_harness(
         incomplete_reasons.append(
             "Candidate models were not invoked (local-stub execution)."
         )
-    if not judge_ran:
+    if judge_errors:
+        incomplete_reasons.append(
+            "LLM-as-judge failed closed on one or more runs."
+        )
+    elif judge_not_run:
         incomplete_reasons.append("LLM-as-judge was not run (local-stub execution).")
     if not cost_measured:
         incomplete_reasons.append("Bedrock token usage and cost were not measured.")

@@ -167,6 +167,68 @@ def test_haiku_judge_fails_closed_on_bad_payload():
     assert judged["status"] == "error"
     assert judged["pass"] is None
     assert judged["scores"]["faithfulness"] is None
+    assert judged["usage"]["input_tokens"] == 10
+    assert judged["cost_usd"] is not None
+
+
+def test_live_judge_error_incomplete_reasons_are_honest():
+    client = FakeConverseClient(
+        [
+            {
+                "output": {
+                    "message": {"content": [{"text": "Order VE-1001 shipped."}]}
+                },
+                "usage": {"inputTokens": 80, "outputTokens": 20, "totalTokens": 100},
+                "stopReason": "end_turn",
+            },
+            {
+                "output": {"message": {"content": [{"text": "not-json"}]}},
+                "usage": {"inputTokens": 50, "outputTokens": 10, "totalTokens": 60},
+                "stopReason": "end_turn",
+            },
+        ]
+    )
+
+    scorecard = run_harness(
+        dataset_path=GOLDEN_DATASET_PATH,
+        candidate_model_ids=["logical:nova-micro"],
+        scenario_ids={"ord-status-001"},
+        runner=BedrockCandidateRunner(client=client),
+        judge=BedrockHaikuJudge(client=client),
+        prompt_version="bedrock-draft-v0.1",
+        scorecard_id="scorecard-live-judge-error",
+        created_at="2026-07-29T00:00:00+00:00",
+    )
+
+    assert scorecard["summary"]["candidates_executed"] is True
+    assert scorecard["summary"]["judge_completed"] is False
+    assert scorecard["summary"]["overall_pass"] is None
+    assert "LLM-as-judge failed closed on one or more runs." in scorecard["incomplete_reasons"]
+    assert "local-stub execution" not in " ".join(scorecard["incomplete_reasons"])
+    assert scorecard["cost"]["status"] == "measured"
+    assert scorecard["results"][0]["judge"]["cost_usd"] is not None
+
+
+def test_bedrock_candidate_keeps_empty_draft_without_stub_fallback():
+    scenario = next(
+        scenario
+        for scenario in load_dataset()["scenarios"]
+        if scenario["id"] == "faq-policy-001"
+    )
+    client = FakeConverseClient(
+        [
+            {
+                "output": {"message": {"content": [{"text": ""}]}},
+                "usage": {"inputTokens": 10, "outputTokens": 0, "totalTokens": 10},
+                "stopReason": "end_turn",
+            }
+        ]
+    )
+
+    result = BedrockCandidateRunner(client=client).run(scenario, "logical:nova-micro")
+
+    assert result["output"]["answer"] == ""
+    assert "bedrock_draft_empty" in result["output"]["notes"]
 
 
 def test_live_harness_path_with_injected_adapters():

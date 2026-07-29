@@ -111,12 +111,16 @@ class BedrockCandidateRunner:
             client=self._client,
         )
         wall_time_ms = round((time.perf_counter() - started) * 1000, 3)
+        draft_text = draft["text"]
+        notes = list(local_output.get("notes") or []) + [f"bedrock_draft:{profile_id}"]
+        if not draft_text:
+            notes.append("bedrock_draft_empty")
         output = {
             **local_output,
-            "answer": draft["text"] or local_output.get("answer"),
+            # Keep empty draft visible; do not silently credit the local stub answer.
+            "answer": draft_text,
             "model_id": profile_id,
-            "notes": list(local_output.get("notes") or [])
-            + [f"bedrock_draft:{profile_id}"],
+            "notes": notes,
         }
         usage = draft["usage"]
         return {
@@ -182,6 +186,7 @@ class BedrockHaikuJudge:
             },
             indent=2,
         )
+        raw: dict[str, Any] | None = None
         try:
             raw = converse_text(
                 model_id=self.judge_model_id,
@@ -218,7 +223,7 @@ class BedrockHaikuJudge:
                 "cost_usd": estimate_cost_usd(self.judge_model_id, raw["usage"]),
             }
         except Exception as exc:  # noqa: BLE001 — fail closed, never fabricate scores
-            return {
+            failed: dict[str, Any] = {
                 "status": "error",
                 "judge_version": self.judge_version,
                 "model_id": self.judge_model_id,
@@ -230,3 +235,8 @@ class BedrockHaikuJudge:
                 "pass": None,
                 "reason": f"Judge failed closed: {type(exc).__name__}: {exc}",
             }
+            # Preserve token spend when Converse succeeded but parsing/scoring failed.
+            if raw is not None:
+                failed["usage"] = raw["usage"]
+                failed["cost_usd"] = estimate_cost_usd(self.judge_model_id, raw["usage"])
+            return failed
