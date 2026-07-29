@@ -49,7 +49,11 @@ def test_local_scorecard_never_claims_model_judge_or_cost_execution():
     assert scorecard["summary"]["candidates_executed"] is False
     assert scorecard["summary"]["judge_completed"] is False
     assert scorecard["summary"]["overall_pass"] is None
-    assert scorecard["cost"] == {"status": "not_measured", "total_usd": None}
+    assert scorecard["cost"] == {
+        "status": "not_measured",
+        "basis": None,
+        "total_usd": None,
+    }
     assert scorecard["cache_enabled"] is False
     assert scorecard["cache_status"] == "not_configured"
     assert scorecard["judge_prompt_cache"]["prefix_name"] == "eval-judge-rubric"
@@ -237,7 +241,8 @@ def test_harness_rejects_invalid_candidate_configuration(candidate_ids):
 def test_judge_rubric_is_versioned_and_covers_all_task_types():
     rubric = json.loads(DEFAULT_RUBRIC_PATH.read_text(encoding="utf-8"))
 
-    assert rubric["judge_version"] == "v0.1-rubric-draft"
+    assert rubric["judge_version"] == "v0.1-haiku-4.5"
+    assert rubric["status"] == "active"
     assert set(rubric["dimensions"]) == {
         "faithfulness",
         "helpfulness",

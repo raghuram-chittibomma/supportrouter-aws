@@ -1,6 +1,7 @@
 {
-  "judge_version": "v0.1-rubric-draft",
-  "status": "draft",
+  "judge_version": "v0.1-haiku-4.5",
+  "status": "active",
+  "judge_model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
   "dimensions": {
     "faithfulness": {
       "scale": [1, 2, 3, 4, 5],
@@ -24,8 +25,9 @@
     "unknown": 4
   },
   "notes": [
-    "The judge model remains unresolved in GitHub issue #25.",
+    "Judge model is Claude Haiku 4.5 (GitHub issue #25).",
     "A scenario can pass only when programmatic checks pass and every judge dimension meets its task threshold.",
-    "Local-stub runs record judge status as not_run and cannot produce an overall pass."
+    "Local-stub runs record judge status as not_run and cannot produce an overall pass.",
+    "Live harness runs (--live) invoke Bedrock Converse for candidates and this judge."
   ]
 }

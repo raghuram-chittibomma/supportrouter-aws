@@ -1,0 +1,469 @@
+{
+  "schema_version": "v0.1",
+  "scorecard_id": "scorecard-v0.1-live-bedrock-2026-07-29",
+  "dataset_version": "v0.1-golden",
+  "prompt_version": "bedrock-draft-v0.1",
+  "judge_version": "v0.1-haiku-4.5",
+  "model_ids": [
+    "logical:nova-micro",
+    "logical:nova-lite",
+    "logical:claude-haiku"
+  ],
+  "execution_mode": "bedrock_converse",
+  "cache_enabled": false,
+  "cache_status": "not_configured",
+  "judge_prompt_cache": {
+    "prefix_name": "eval-judge-rubric",
+    "prefix_version": "v0.1-haiku-4.5",
+    "prefix_sha256": "7df52dcfb6142c7f78000b8ccea52dd2532b25c47a3390e1a3205785e4039442"
+  },
+  "created_at": "2026-07-29T21:33:02.301874+00:00",
+  "incomplete_reasons": [],
+  "summary": {
+    "candidate_count": 3,
+    "candidates_executed": true,
+    "task_types": [
+      "faq_policy",
+      "order_status"
+    ],
+    "scenario_count": 2,
+    "scenario_runs": 6,
+    "programmatic_passes": 6,
+    "programmatic_pass_rate": 1.0,
+    "judge_completed": true,
+    "overall_pass": true
+  },
+  "cost": {
+    "status": "measured",
+    "basis": "tokens \u00d7 published on-demand rates",
+    "total_usd": 0.01022537
+  },
+  "results": [
+    {
+      "scenario_id": "ord-status-001",
+      "task_type": "order_status",
+      "requested_model_id": "logical:nova-micro",
+      "candidate_executed": true,
+      "actual_model_id": "us.amazon.nova-micro-v1:0",
+      "execution_mode": "bedrock_converse",
+      "wall_time_ms": 2516.489,
+      "usage": {
+        "input_tokens": 333,
+        "output_tokens": 58,
+        "total_tokens": 391
+      },
+      "cost_usd": 1.977e-05,
+      "model_output": {
+        "answer": "Dear Customer,\n\nThank you for reaching out to VoltEdge Electronics. Your order VE-1001 is currently **shipped**. You can track your order using the tracking number **VETRACK-90821**.\n\nBest regards,\nThe VoltEdge Electronics Team",
+        "task_type": "order_status",
+        "status": "resolved",
+        "citations": [],
+        "tool_calls": [
+          {
+            "name": "get_order_status",
+            "args": {
+              "order_id": "VE-1001"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "VE-1001",
+              "status": "shipped",
+              "tracking_number": "VETRACK-90821",
+              "items": [
+                {
+                  "sku": "VE-CC-4K",
+                  "qty": 1,
+                  "line_total_usd": 99.99
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "programmatic": {
+        "task_type_match": true,
+        "outcome_match": true,
+        "tools_match": true,
+        "tool_error_match": true,
+        "citations_match": true,
+        "pass": true,
+        "actual_tools": [
+          "get_order_status"
+        ],
+        "actual_tool_errors": [],
+        "actual_citations": []
+      },
+      "judge": {
+        "status": "completed",
+        "judge_version": "v0.1-haiku-4.5",
+        "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "scores": {
+          "faithfulness": 5,
+          "helpfulness": 5,
+          "policy_adherence": 5
+        },
+        "pass": true,
+        "reason": "Answer directly supported by tool result showing order VE-1001 status as 'shipped' with tracking number VETRACK-90821. All claims are factually grounded in the synthetic data returned. Response provides actionable tracking information and resolves the customer inquiry completely.",
+        "usage": {
+          "input_tokens": 631,
+          "output_tokens": 103,
+          "total_tokens": 734
+        },
+        "cost_usd": 0.001146
+      },
+      "pass": true
+    },
+    {
+      "scenario_id": "faq-policy-001",
+      "task_type": "faq_policy",
+      "requested_model_id": "logical:nova-micro",
+      "candidate_executed": true,
+      "actual_model_id": "us.amazon.nova-micro-v1:0",
+      "execution_mode": "bedrock_converse",
+      "wall_time_ms": 890.228,
+      "usage": {
+        "input_tokens": 448,
+        "output_tokens": 121,
+        "total_tokens": 569
+      },
+      "cost_usd": 3.262e-05,
+      "model_output": {
+        "answer": "Dear Customer,\n\nThank you for reaching out to VoltEdge Electronics. Based on our policy `pol-returns-001` (VoltEdge Returns Policy), we accept returns of eligible items within **30 days** of delivery when the products are unused and in their original packaging.\n\nIf you have any further questions or need assistance with your return, please provide your order ID (format `VE-####`).\n\nBest regards,\nThe VoltEdge Electronics Support Team\n\n_(Routed model: amazon.nova-micro; drafting is local stub \u2013 no Bedrock call.)_",
+        "task_type": "faq_policy",
+        "status": "resolved",
+        "citations": [
+          {
+            "doc_id": "pol-returns-001",
+            "title": "VoltEdge Returns Policy (Synthetic)",
+            "excerpt": "# Returns Policy  VoltEdge Electronics accepts returns of eligible items within **30 days** of delivery when products are unused and in original packaging.  Damaged or missing shipment claims should include order ID (format `VE-####`) and p",
+            "score": 11
+          },
+          {
+            "doc_id": "faq-powerdock-001",
+            "title": "PowerDock Duo Compatibility (Synthetic)",
+            "excerpt": "# PowerDock Duo Compatibility  The PowerDock Duo USB-C dock supports DisplayPort Alt Mode over USB-C. It is compatible with laptops that provide video over USB-C.  It is **not** guaranteed to charge devices that require proprietary USB-C po",
+            "score": 2
+          }
+        ],
+        "tool_calls": []
+      },
+      "programmatic": {
+        "task_type_match": true,
+        "outcome_match": true,
+        "tools_match": true,
+        "tool_error_match": true,
+        "citations_match": true,
+        "pass": true,
+        "actual_tools": [],
+        "actual_tool_errors": [],
+        "actual_citations": [
+          "faq-powerdock-001",
+          "pol-returns-001"
+        ]
+      },
+      "judge": {
+        "status": "completed",
+        "judge_version": "v0.1-haiku-4.5",
+        "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "scores": {
+          "faithfulness": 5,
+          "helpfulness": 5,
+          "policy_adherence": 5
+        },
+        "pass": true,
+        "reason": "Answer directly cites pol-returns-001 and accurately conveys all three expected facts (30 days, unused, original packaging). The response is well-structured, actionable, and aligns with the resolved status. Primary citation has high relevance score (11); secondary citation (score 2) does not detract from core answer accuracy.",
+        "usage": {
+          "input_tokens": 823,
+          "output_tokens": 118,
+          "total_tokens": 941
+        },
+        "cost_usd": 0.001413
+      },
+      "pass": true
+    },
+    {
+      "scenario_id": "ord-status-001",
+      "task_type": "order_status",
+      "requested_model_id": "logical:nova-lite",
+      "candidate_executed": true,
+      "actual_model_id": "us.amazon.nova-lite-v1:0",
+      "execution_mode": "bedrock_converse",
+      "wall_time_ms": 1083.026,
+      "usage": {
+        "input_tokens": 333,
+        "output_tokens": 128,
+        "total_tokens": 461
+      },
+      "cost_usd": 5.07e-05,
+      "model_output": {
+        "answer": "Subject: Order Status Update for Order VE-1001\n\nDear Customer,\n\nThank you for reaching out to VoltEdge Electronics regarding your order VE-1001.\n\nWe are pleased to inform you that your order has been shipped. Here are the details:\n\n- **Order ID:** VE-1001\n- **Status:** Shipped\n- **Tracking Number:** VETRACK-90821\n\nYou can track your shipment using the provided tracking number.\n\nIf you have any further questions or need additional assistance, please do not hesitate to contact us.\n\nBest regards,\n\nVoltEdge Electronics Customer Support Team",
+        "task_type": "order_status",
+        "status": "resolved",
+        "citations": [],
+        "tool_calls": [
+          {
+            "name": "get_order_status",
+            "args": {
+              "order_id": "VE-1001"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "VE-1001",
+              "status": "shipped",
+              "tracking_number": "VETRACK-90821",
+              "items": [
+                {
+                  "sku": "VE-CC-4K",
+                  "qty": 1,
+                  "line_total_usd": 99.99
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "programmatic": {
+        "task_type_match": true,
+        "outcome_match": true,
+        "tools_match": true,
+        "tool_error_match": true,
+        "citations_match": true,
+        "pass": true,
+        "actual_tools": [
+          "get_order_status"
+        ],
+        "actual_tool_errors": [],
+        "actual_citations": []
+      },
+      "judge": {
+        "status": "completed",
+        "judge_version": "v0.1-haiku-4.5",
+        "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "scores": {
+          "faithfulness": 5,
+          "helpfulness": 5,
+          "policy_adherence": 5
+        },
+        "pass": true,
+        "reason": "Answer directly addresses the order status query with accurate facts from tool result (Order VE-1001, status 'shipped', tracking number VETRACK-90821). Provides actionable next step (track shipment). Professional format appropriate for support context. All claims supported by get_order_status tool output.",
+        "usage": {
+          "input_tokens": 725,
+          "output_tokens": 111,
+          "total_tokens": 836
+        },
+        "cost_usd": 0.00128
+      },
+      "pass": true
+    },
+    {
+      "scenario_id": "faq-policy-001",
+      "task_type": "faq_policy",
+      "requested_model_id": "logical:nova-lite",
+      "candidate_executed": true,
+      "actual_model_id": "us.amazon.nova-lite-v1:0",
+      "execution_mode": "bedrock_converse",
+      "wall_time_ms": 1366.766,
+      "usage": {
+        "input_tokens": 448,
+        "output_tokens": 135,
+        "total_tokens": 583
+      },
+      "cost_usd": 5.928e-05,
+      "model_output": {
+        "answer": "Subject: VoltEdge Returns Policy for Unused Items\n\nDear Customer,\n\nThank you for reaching out to VoltEdge Electronics. We're here to assist you with any inquiries you may have regarding our return policy.\n\nAccording to our VoltEdge Returns Policy (Document ID: pol-returns-001), VoltEdge Electronics accepts returns of eligible items within **30 days** of delivery. To be eligible for a return, the items must be unused and in their original packaging.\n\nIf you have any further questions or need assistance with a return, please feel free to contact our customer support team.\n\nBest regards,\n\n[Your Name]  \nCustomer Support  \nVoltEdge Electronics",
+        "task_type": "faq_policy",
+        "status": "resolved",
+        "citations": [
+          {
+            "doc_id": "pol-returns-001",
+            "title": "VoltEdge Returns Policy (Synthetic)",
+            "excerpt": "# Returns Policy  VoltEdge Electronics accepts returns of eligible items within **30 days** of delivery when products are unused and in original packaging.  Damaged or missing shipment claims should include order ID (format `VE-####`) and p",
+            "score": 11
+          },
+          {
+            "doc_id": "faq-powerdock-001",
+            "title": "PowerDock Duo Compatibility (Synthetic)",
+            "excerpt": "# PowerDock Duo Compatibility  The PowerDock Duo USB-C dock supports DisplayPort Alt Mode over USB-C. It is compatible with laptops that provide video over USB-C.  It is **not** guaranteed to charge devices that require proprietary USB-C po",
+            "score": 2
+          }
+        ],
+        "tool_calls": []
+      },
+      "programmatic": {
+        "task_type_match": true,
+        "outcome_match": true,
+        "tools_match": true,
+        "tool_error_match": true,
+        "citations_match": true,
+        "pass": true,
+        "actual_tools": [],
+        "actual_tool_errors": [],
+        "actual_citations": [
+          "faq-powerdock-001",
+          "pol-returns-001"
+        ]
+      },
+      "judge": {
+        "status": "completed",
+        "judge_version": "v0.1-haiku-4.5",
+        "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "scores": {
+          "faithfulness": 5,
+          "helpfulness": 5,
+          "policy_adherence": 5
+        },
+        "pass": true,
+        "reason": "Answer directly cites pol-returns-001 and accurately conveys all three expected facts (30 days, unused, original packaging). Response is well-structured, professional, and provides clear actionable guidance. Status correctly marked as resolved. Primary citation has high relevance score (11); secondary citation (score 2) does not detract from core answer accuracy.",
+        "usage": {
+          "input_tokens": 849,
+          "output_tokens": 121,
+          "total_tokens": 970
+        },
+        "cost_usd": 0.001454
+      },
+      "pass": true
+    },
+    {
+      "scenario_id": "ord-status-001",
+      "task_type": "order_status",
+      "requested_model_id": "logical:claude-haiku",
+      "candidate_executed": true,
+      "actual_model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "execution_mode": "bedrock_converse",
+      "wall_time_ms": 1947.149,
+      "usage": {
+        "input_tokens": 372,
+        "output_tokens": 101,
+        "total_tokens": 473
+      },
+      "cost_usd": 0.000877,
+      "model_output": {
+        "answer": "# Order Status Update\n\nThank you for checking on your order!\n\n**Order ID:** VE-1001  \n**Status:** Shipped  \n**Tracking Number:** VETRACK-90821\n\nYour order containing 1x VE-CC-4K has been dispatched and is on its way to you. You can track your shipment using the tracking number above.\n\nIf you have any further questions, please don't hesitate to reach out!",
+        "task_type": "order_status",
+        "status": "resolved",
+        "citations": [],
+        "tool_calls": [
+          {
+            "name": "get_order_status",
+            "args": {
+              "order_id": "VE-1001"
+            },
+            "result": {
+              "ok": true,
+              "order_id": "VE-1001",
+              "status": "shipped",
+              "tracking_number": "VETRACK-90821",
+              "items": [
+                {
+                  "sku": "VE-CC-4K",
+                  "qty": 1,
+                  "line_total_usd": 99.99
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "programmatic": {
+        "task_type_match": true,
+        "outcome_match": true,
+        "tools_match": true,
+        "tool_error_match": true,
+        "citations_match": true,
+        "pass": true,
+        "actual_tools": [
+          "get_order_status"
+        ],
+        "actual_tool_errors": [],
+        "actual_citations": []
+      },
+      "judge": {
+        "status": "completed",
+        "judge_version": "v0.1-haiku-4.5",
+        "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "scores": {
+          "faithfulness": 5,
+          "helpfulness": 5,
+          "policy_adherence": 5
+        },
+        "pass": true,
+        "reason": "Answer directly matches tool result data (order VE-1001, status shipped, tracking VETRACK-90821, item VE-CC-4K qty 1). Provides actionable tracking information. Resolves user query completely with appropriate tone and structure.",
+        "usage": {
+          "input_tokens": 676,
+          "output_tokens": 102,
+          "total_tokens": 778
+        },
+        "cost_usd": 0.001186
+      },
+      "pass": true
+    },
+    {
+      "scenario_id": "faq-policy-001",
+      "task_type": "faq_policy",
+      "requested_model_id": "logical:claude-haiku",
+      "candidate_executed": true,
+      "actual_model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "execution_mode": "bedrock_converse",
+      "wall_time_ms": 2283.642,
+      "usage": {
+        "input_tokens": 510,
+        "output_tokens": 152,
+        "total_tokens": 662
+      },
+      "cost_usd": 0.00127,
+      "model_output": {
+        "answer": "# VoltEdge Returns Policy \u2013 30-Day Window\n\nThank you for your question! Here's our policy for unused items in original packaging:\n\n**VoltEdge Electronics accepts returns of eligible items within 30 days of delivery when products are unused and in original packaging.**\n\n## Next Steps\nIf you'd like to initiate a return, please have your order ID ready (format: `VE-####`). This will help us process your request quickly.\n\nIf you have any questions about whether your specific item qualifies or need assistance with your return, please let us know and we're happy to help!\n\n---\n*Based on VoltEdge Returns Policy (pol-returns-001)*",
+        "task_type": "faq_policy",
+        "status": "resolved",
+        "citations": [
+          {
+            "doc_id": "pol-returns-001",
+            "title": "VoltEdge Returns Policy (Synthetic)",
+            "excerpt": "# Returns Policy  VoltEdge Electronics accepts returns of eligible items within **30 days** of delivery when products are unused and in original packaging.  Damaged or missing shipment claims should include order ID (format `VE-####`) and p",
+            "score": 11
+          },
+          {
+            "doc_id": "faq-powerdock-001",
+            "title": "PowerDock Duo Compatibility (Synthetic)",
+            "excerpt": "# PowerDock Duo Compatibility  The PowerDock Duo USB-C dock supports DisplayPort Alt Mode over USB-C. It is compatible with laptops that provide video over USB-C.  It is **not** guaranteed to charge devices that require proprietary USB-C po",
+            "score": 2
+          }
+        ],
+        "tool_calls": []
+      },
+      "programmatic": {
+        "task_type_match": true,
+        "outcome_match": true,
+        "tools_match": true,
+        "tool_error_match": true,
+        "citations_match": true,
+        "pass": true,
+        "actual_tools": [],
+        "actual_tool_errors": [],
+        "actual_citations": [
+          "faq-powerdock-001",
+          "pol-returns-001"
+        ]
+      },
+      "judge": {
+        "status": "completed",
+        "judge_version": "v0.1-haiku-4.5",
+        "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "scores": {
+          "faithfulness": 5,
+          "helpfulness": 5,
+          "policy_adherence": 5
+        },
+        "pass": true,
+        "reason": "Answer directly addresses all three expected facts (30 days, unused, original packaging) with accurate claims supported by primary citation pol-returns-001. Provides actionable next steps (order ID format) and offers further assistance. Properly cites the returns policy document. Status correctly marked as resolved. All expected answer facts are present and faithfully represented.",
+        "usage": {
+          "input_tokens": 847,
+          "output_tokens": 118,
+          "total_tokens": 965
+        },
+        "cost_usd": 0.001437
+      },
+      "pass": true
+    }
+  ]
+}
