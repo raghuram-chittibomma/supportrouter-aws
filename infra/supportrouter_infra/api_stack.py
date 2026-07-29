@@ -162,8 +162,6 @@ class ApiStack(cdk.Stack):
                 actions=[
                     "dynamodb:GetItem",
                     "dynamodb:PutItem",
-                    "dynamodb:Scan",
-                    "dynamodb:TransactWriteItems",
                 ],
                 resources=hitl_table_arns,
             )

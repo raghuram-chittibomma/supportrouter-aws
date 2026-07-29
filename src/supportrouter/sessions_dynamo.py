@@ -11,7 +11,6 @@ import json
 import os
 from copy import deepcopy
 from datetime import datetime, timezone
-from decimal import Decimal
 from typing import Any
 
 from botocore.exceptions import ClientError
@@ -65,41 +64,6 @@ def _approvals_table() -> str:
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _to_attr(value: Any) -> dict[str, Any]:
-    if value is None:
-        return {"NULL": True}
-    if isinstance(value, bool):
-        return {"BOOL": value}
-    if isinstance(value, (int, float, Decimal)):
-        return {"N": str(value)}
-    if isinstance(value, str):
-        return {"S": value}
-    if isinstance(value, dict):
-        return {"M": {k: _to_attr(v) for k, v in value.items()}}
-    if isinstance(value, list):
-        return {"L": [_to_attr(v) for v in value]}
-    raise TypeError(f"unsupported DynamoDB value type: {type(value)!r}")
-
-
-def _from_attr(attr: dict[str, Any]) -> Any:
-    if "NULL" in attr:
-        return None
-    if "BOOL" in attr:
-        return attr["BOOL"]
-    if "N" in attr:
-        number = Decimal(attr["N"])
-        if number % 1 == 0:
-            return int(number)
-        return float(number)
-    if "S" in attr:
-        return attr["S"]
-    if "M" in attr:
-        return {k: _from_attr(v) for k, v in attr["M"].items()}
-    if "L" in attr:
-        return [_from_attr(v) for v in attr["L"]]
-    raise TypeError(f"unsupported DynamoDB attribute: {attr!r}")
 
 
 def _item_from_record(record: dict[str, Any], *, key_name: str) -> dict[str, Any]:

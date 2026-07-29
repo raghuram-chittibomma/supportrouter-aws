@@ -148,12 +148,15 @@ resolved path. See [ADR-009](DECISIONS/ADR-009-deterministic-confidence-policy.m
 | `decided_at` / `decided_by` | S | Nullable until terminal decision |
 | `decision_note` | S | Supervisor-provided note |
 | `version` | N | Starts at 1; increments on the terminal transition |
-| `execution_status` | S | `not_executed` in the local slice |
+| `execution_status` | S | `not_executed` until a future refund-execution slice |
 
-The local demo stores these records in an in-memory repository with a
-process-local lock. Same-decision retries are idempotent; a conflicting terminal
-decision is rejected. DynamoDB conditional persistence and actual refund
-execution are deferred to the AWS completion of #16 after #14.
+When `SESSIONS_TABLE_NAME` and `APPROVALS_TABLE_NAME` are set (ApiStack),
+records persist in DynamoDB with ADR-010 conditional writes (create if
+`attribute_not_exists(approval_id)`; decide only while `status=pending`;
+transactional approval + session update). Without those env vars, the same
+contract uses an in-memory repository. Same-decision retries are idempotent; a
+conflicting terminal decision is rejected. Actual refund **execution** remains
+out of scope (`execution_status=not_executed`).
 
 Approval/session terminal mapping is explicit: approval `approved` maps the
 session to `resolved`; approval `rejected` maps the session to `rejected`.

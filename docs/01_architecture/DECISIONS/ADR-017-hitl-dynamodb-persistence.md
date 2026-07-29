@@ -22,8 +22,10 @@ restart. The chat Lambda previously had logs-only IAM (ADR-014/015).
    decide (approval + session status), preserving ADR-010 idempotency rules.
 5. Provide CLI `list-pending` and `decide` for the v0.1 supervisor path.
    Escalations remain view-only; `execution_status` stays `not_executed`.
-6. Grant the chat role scoped DynamoDB access to those two tables only — still
-   no Bedrock invoke permissions (drafting remains local stub).
+6. Grant the chat role scoped DynamoDB ``GetItem``/``PutItem`` on those two
+   tables only — still no Bedrock invoke permissions (drafting remains local
+   stub). Supervisor CLI ``list-pending``/``decide`` uses caller credentials for
+   ``Scan``/``TransactWriteItems``.
 
 ## Consequences
 

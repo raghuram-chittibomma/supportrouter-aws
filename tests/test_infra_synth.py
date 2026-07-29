@@ -390,8 +390,6 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
         "logs:PutLogEvents",
         "dynamodb:GetItem",
         "dynamodb:PutItem",
-        "dynamodb:Scan",
-        "dynamodb:TransactWriteItems",
     }
 
     policy_serialized = json.dumps(policies[0])
