@@ -26,6 +26,7 @@ Thumbs.db
 .env.*
 !.env.example
 
-# Scorecard noise (keep committed examples under evals/scorecards/.gitkeep)
+# Scorecard noise (keep committed release examples via negation)
 *.log
 evals/scorecards/*.json
+!evals/scorecards/scorecard-v0.1-live-bedrock-*.json

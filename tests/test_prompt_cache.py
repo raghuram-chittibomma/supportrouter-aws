@@ -59,7 +59,7 @@ def test_judge_prefix_is_stable_and_excludes_scenario_inputs():
 
     assert first == second
     assert first.name == "eval-judge-rubric"
-    assert first.version == "v0.1-rubric-draft"
+    assert first.version == "v0.1-haiku-4.5"
     assert [block["kind"] for block in first.blocks] == [
         "judge_system",
         "judge_rubric",

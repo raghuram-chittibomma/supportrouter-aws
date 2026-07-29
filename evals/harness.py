@@ -1,8 +1,8 @@
 """Local-first evaluation harness and versioned scorecard writer.
 
-The local runner exercises fan-out and scoring mechanics without claiming that
-Bedrock candidates or an LLM judge ran. Live providers will replace the runner
-and judge adapters after issues #24 and #25 are resolved.
+Default execution uses the local stub runner and a not-run judge so harness
+mechanics stay free. Pass ``--live`` to invoke Bedrock Converse candidates and
+the Claude Haiku 4.5 judge (#17, #24, #25).
 """
 
 from __future__ import annotations
@@ -26,8 +26,10 @@ DEFAULT_CANDIDATE_MODELS = (
     "logical:claude-haiku",
 )
 DEFAULT_PROMPT_VERSION = "local-stub-v0.1"
+DEFAULT_LIVE_PROMPT_VERSION = "bedrock-draft-v0.1"
 DEFAULT_RUBRIC_PATH = Path(__file__).resolve().parent / "rubrics" / "v0.1_judge.json"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "scorecards"
+DEFAULT_LIVE_MAX_SCENARIOS_PER_TASK = 1
 
 
 class CandidateRunner(Protocol):
@@ -90,7 +92,7 @@ class NotRunJudge:
                 "policy_adherence": None,
             },
             "pass": None,
-            "reason": "No LLM judge is configured for local-stub execution (#25).",
+            "reason": "No LLM judge is configured for local-stub execution.",
         }
 
 
@@ -122,11 +124,69 @@ def programmatic_metrics(
     }
 
 
+def _select_scenarios(
+    scenarios: Sequence[dict[str, Any]],
+    *,
+    task_types: set[str] | None,
+    scenario_ids: set[str] | None,
+    max_scenarios_per_task: int | None,
+) -> list[dict[str, Any]]:
+    selected = [
+        scenario
+        for scenario in scenarios
+        if (task_types is None or scenario["task_type"] in task_types)
+        and (scenario_ids is None or scenario["id"] in scenario_ids)
+    ]
+    if max_scenarios_per_task is None:
+        return selected
+    if max_scenarios_per_task < 1:
+        raise ValueError("max_scenarios_per_task must be >= 1")
+    capped: list[dict[str, Any]] = []
+    counts: dict[str, int] = {}
+    for scenario in selected:
+        task = scenario["task_type"]
+        used = counts.get(task, 0)
+        if used >= max_scenarios_per_task:
+            continue
+        capped.append(scenario)
+        counts[task] = used + 1
+    return capped
+
+
+def _result_total_cost_usd(result: dict[str, Any]) -> float | None:
+    """Sum candidate + judge cost when the run's measured spend is complete.
+
+    Local-stub rows leave both null. Live rows that executed a candidate require
+    candidate cost. A completed or failed-closed judge attempt also requires
+    judge cost so scorecards do not claim ``measured`` while dropping judge tokens.
+    """
+    candidate = result.get("cost_usd")
+    judge = result.get("judge") or {}
+    judge_status = judge.get("status")
+    judge_cost = judge.get("cost_usd")
+
+    if result.get("candidate_executed") and candidate is None:
+        return None
+    if judge_status in {"completed", "error"} and judge_cost is None:
+        return None
+    if candidate is None and judge_cost is None:
+        return None
+
+    total = 0.0
+    if candidate is not None:
+        total += float(candidate)
+    if judge_cost is not None:
+        total += float(judge_cost)
+    return round(total, 8)
+
+
 def run_harness(
     *,
     dataset_path: Path = GOLDEN_DATASET_PATH,
     candidate_model_ids: Sequence[str] = DEFAULT_CANDIDATE_MODELS,
     task_types: set[str] | None = None,
+    scenario_ids: set[str] | None = None,
+    max_scenarios_per_task: int | None = None,
     runner: CandidateRunner | None = None,
     judge: Judge | None = None,
     rubric_path: Path = DEFAULT_RUBRIC_PATH,
@@ -146,13 +206,14 @@ def run_harness(
     judge_prefix = judge_cacheable_prefix(rubric_path)
     active_runner = runner or LocalStubCandidateRunner()
     active_judge = judge or NotRunJudge(judge_prefix.version)
-    selected = [
-        scenario
-        for scenario in dataset["scenarios"]
-        if task_types is None or scenario["task_type"] in task_types
-    ]
+    selected = _select_scenarios(
+        dataset["scenarios"],
+        task_types=task_types,
+        scenario_ids=scenario_ids,
+        max_scenarios_per_task=max_scenarios_per_task,
+    )
     if not selected:
-        raise ValueError("no scenarios matched the requested task types")
+        raise ValueError("no scenarios matched the requested filters")
 
     results: list[dict[str, Any]] = []
     for model_id in candidate_model_ids:
@@ -194,14 +255,24 @@ def run_harness(
 
     programmatic_passes = sum(1 for result in results if result["programmatic"]["pass"])
     candidates_executed = all(result["candidate_executed"] for result in results)
-    judge_ran = all(result["judge"]["status"] == "completed" for result in results)
+    judge_statuses = [result["judge"]["status"] for result in results]
+    judge_ran = all(status == "completed" for status in judge_statuses)
+    judge_errors = any(status == "error" for status in judge_statuses)
+    judge_not_run = any(status == "not_run" for status in judge_statuses)
     pass_states_complete = all(result["pass"] is not None for result in results)
-    cost_measured = all(result["cost_usd"] is not None for result in results)
+    result_costs = [_result_total_cost_usd(result) for result in results]
+    cost_measured = all(cost is not None for cost in result_costs)
     incomplete_reasons: list[str] = []
     if not candidates_executed:
-        incomplete_reasons.append("Candidate models were not invoked (#24).")
-    if not judge_ran:
-        incomplete_reasons.append("LLM-as-judge was not run (#25).")
+        incomplete_reasons.append(
+            "Candidate models were not invoked (local-stub execution)."
+        )
+    if judge_errors:
+        incomplete_reasons.append(
+            "LLM-as-judge failed closed on one or more runs."
+        )
+    elif judge_not_run:
+        incomplete_reasons.append("LLM-as-judge was not run (local-stub execution).")
     if not cost_measured:
         incomplete_reasons.append("Bedrock token usage and cost were not measured.")
 
@@ -239,8 +310,13 @@ def run_harness(
         },
         "cost": {
             "status": "measured" if cost_measured else "not_measured",
+            "basis": (
+                "tokens × published on-demand rates"
+                if cost_measured
+                else None
+            ),
             "total_usd": (
-                sum(result["cost_usd"] for result in results)
+                round(sum(result_costs), 8)  # type: ignore[arg-type]
                 if cost_measured
                 else None
             ),
@@ -274,13 +350,50 @@ def main(argv: Sequence[str] | None = None) -> int:
         dest="task_types",
         help="Limit scenarios to a task type; repeat as needed.",
     )
+    parser.add_argument(
+        "--scenario-id",
+        action="append",
+        dest="scenario_ids",
+        help="Limit to specific scenario IDs; repeat as needed.",
+    )
+    parser.add_argument(
+        "--max-scenarios-per-task",
+        type=int,
+        default=None,
+        help="Cap scenarios per task type (live default: 1).",
+    )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Invoke Bedrock Converse candidates and Claude Haiku 4.5 judge.",
+    )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--scorecard-id", default=None)
     args = parser.parse_args(argv)
+
+    runner = None
+    judge = None
+    prompt_version = DEFAULT_PROMPT_VERSION
+    max_per_task = args.max_scenarios_per_task
+    if args.live:
+        from evals.bedrock_adapters import BedrockCandidateRunner, BedrockHaikuJudge
+
+        runner = BedrockCandidateRunner()
+        judge = BedrockHaikuJudge(rubric_path=DEFAULT_RUBRIC_PATH)
+        prompt_version = DEFAULT_LIVE_PROMPT_VERSION
+        if max_per_task is None and not args.scenario_ids:
+            max_per_task = DEFAULT_LIVE_MAX_SCENARIOS_PER_TASK
 
     scorecard = run_harness(
         dataset_path=args.dataset,
         candidate_model_ids=args.candidate_models or DEFAULT_CANDIDATE_MODELS,
         task_types=set(args.task_types) if args.task_types else None,
+        scenario_ids=set(args.scenario_ids) if args.scenario_ids else None,
+        max_scenarios_per_task=max_per_task,
+        runner=runner,
+        judge=judge,
+        prompt_version=prompt_version,
+        scorecard_id=args.scorecard_id,
     )
     path = write_scorecard(scorecard, args.output_dir)
     print(path)

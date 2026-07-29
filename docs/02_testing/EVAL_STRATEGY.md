@@ -13,7 +13,7 @@ Gate prompt, model, and tool changes with a golden suite. Produce versioned scor
 
 ## Local-first harness
 
-Run the harness locally while Bedrock model and judge choices remain open:
+Default (no Bedrock spend):
 
 ```bash
 python -m evals.harness \
@@ -31,9 +31,20 @@ candidate and records:
 - token usage and cost as `null` / `not_measured`
 - overall pass as `null`
 
-These artifacts are diagnostic only. They do not satisfy the live-model,
-LLM-as-judge, or measured-cost acceptance criteria in issue #17. Resolve model
-IDs in #24 and judge choice in #25 before producing a release scorecard.
+## Live Bedrock harness (ADR-016)
+
+After #24/#25 model and judge choices:
+
+```bash
+python -m evals.harness --live \
+  --task-type order_status \
+  --task-type faq_policy
+```
+
+`--live` invokes Bedrock Converse for each candidate draft and Claude Haiku 4.5
+as judge. By default it caps to **one scenario per task type** (override with
+`--max-scenarios-per-task` or `--scenario-id`). Cost is estimated from token
+usage × published on-demand rates and stored on the scorecard.
 
 ## Guardrail adversarial set
 
@@ -46,11 +57,11 @@ run against the same cases when the live runtime adapter is enabled.
 
 ## Judge rubric
 
-The draft rubric is versioned at `evals/rubrics/v0.1_judge.json`. It scores
-faithfulness, helpfulness, and policy adherence on a 1–5 scale. Minimum scores
-are 4 for all v0.1 task types except `refund_request`, which requires 5.
-Programmatic checks remain mandatory; judge scores cannot rescue a
-programmatic failure.
+The active rubric is versioned at `evals/rubrics/v0.1_judge.json`
+(`judge_version=v0.1-haiku-4.5`, Claude Haiku 4.5). It scores faithfulness,
+helpfulness, and policy adherence on a 1–5 scale. Minimum scores are 4 for all
+v0.1 task types except `refund_request`, which requires 5. Programmatic checks
+remain mandatory; judge scores cannot rescue a programmatic failure.
 
 ## Traceability
 

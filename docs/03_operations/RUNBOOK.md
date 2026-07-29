@@ -110,7 +110,7 @@ ran, not that AWS evaluated the content. After deployment, record the stack's
 Versioned cacheable prefixes are available for:
 
 - agent static system instructions + tool schemas (`agent-prefix-v0.1`)
-- eval judge system instructions + rubric (`v0.1-rubric-draft`)
+- eval judge system instructions + rubric (`v0.1-haiku-4.5`)
 
 These are identity/digest contracts until a Bedrock adapter consumes
 `CacheablePrefix.blocks`. Request messages, session IDs, correlation IDs, and
@@ -209,16 +209,22 @@ cdk deploy --all -c enable_reeval_schedule=false
 On-demand eval (preferred while dormant):
 
 ```bash
+# Local-stub (no Bedrock spend)
 python -m evals.harness \
   --dataset evals/datasets/v0.1_golden.json \
   --task-type order_status \
   --task-type faq_policy
+
+# Live Bedrock drafts + Haiku 4.5 judge (capped to 1 scenario/task by default)
+python -m evals.harness --live \
+  --task-type order_status \
+  --task-type faq_policy
 ```
 
-The local harness writes a scorecard under `evals/scorecards/`, but clearly
-marks candidate execution, judge metrics, token usage, cost, and overall pass
-as incomplete. Do not use local-stub scorecards for routing or release claims.
-Live Bedrock completion remains gated by issues #24 and #25.
+Local-stub scorecards mark candidate execution, judge metrics, token usage,
+cost, and overall pass as incomplete — do not use them for routing or release
+claims. Live runs (`--live`, ADR-016) record executed candidates, completed
+judge scores, and token-derived cost estimates.
 
 ## Cost guardrails
 
