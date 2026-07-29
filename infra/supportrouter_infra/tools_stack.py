@@ -156,7 +156,7 @@ class ToolsStack(cdk.Stack):
             handler=handler,
             role=role,
             environment=environment,
-            timeout=cdk.Duration.seconds(5),
-            memory_size=128,
+            timeout=cdk.Duration.seconds(15),
+            memory_size=256,
             log_group=log_group,
         )
