@@ -55,7 +55,7 @@ Near-zero idle cost is a hard requirement. App is used during build and intermit
 | Mode | Expected cost | Assumptions |
 |------|---------------|-------------|
 | **Dormant month** | ~$0–2 (estimated) | `cdk destroy` completed; no AOSS; no eval schedule; no NAT/VPC |
-| **Active demo month** | Low tens of USD; Budget alert **$20/mo** | Intermittent Lambda/API Gateway/Bedrock; tiny KB on S3 Vectors; manual evals; `cache_enabled=false` until measured |
+| **Active demo month** | Low tens of USD; Budget alert **$20/mo** | Intermittent Lambda/API Gateway/Bedrock; tiny KB on S3 Vectors; manual evals; prompt-cache savings only when scorecard-measured (ADR-021) |
 
 **Always-on landmines to avoid:** OpenSearch Serverless, NAT Gateways, never-expire log groups, standing eval/ingestion schedules, >3 CloudWatch dashboards.
 
@@ -84,7 +84,7 @@ See [`DECISIONS/`](DECISIONS/). Key ADRs: **007** (S3 Vectors), **008**
 (dormancy), **009** (deterministic confidence policy), **010** (refund approval
 lifecycle), **011** (structured observability events), **012** (guardrail
 boundaries), **013** (Lambda tool isolation), **014** (HTTP chat edge), **015**
-(reproducible chat Lambda runtime bundle).
+(reproducible chat Lambda runtime bundle), **021** (Bedrock prompt-cache wiring).
 
 Local runtime emits structured step traces with request `correlation_id` →
 `session_id` linkage. Token/cost fields are always present and stay

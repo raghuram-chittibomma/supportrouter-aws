@@ -77,14 +77,14 @@ Logs Insights. Required fields:
 | `status` | Step: `ok` / `skipped` / `error`; conversation events use outcome status |
 | `attributes.guardrail_*` | Identifier/version and input/output action; no matched sensitive text |
 | `usage.input_tokens` / `output_tokens` / `total_tokens` | Present; null until Bedrock is measured |
-| `usage.cache_enabled` / `cache_status` | `false` / `not_configured` until model-region support is verified |
-| `usage.cache_read_tokens` / `cache_write_tokens` | Present; null until returned by Bedrock |
+| `usage.cache_enabled` / `cache_status` | Local: `false` / `not_configured`. AWS Converse with `prompt_cache`: `true` and `write` / `hit` / `below_minimum` / … |
+| `usage.cache_read_tokens` / `cache_write_tokens` | Mapped from Bedrock when caching is enabled; null when not configured |
 | `cost_usd` / `cost_status` | `null` / `not_measured` until scorecards or billing evidence exist |
 
 Agent results expose `prompt_cache.prefix_name`, `prefix_version`, and
 `prefix_sha256`. Eval scorecards expose the same identity under
-`judge_prompt_cache`, keeping the static prefix traceable without claiming that
-the provider used it.
+`judge_prompt_cache`, plus optional top-level `cache_comparison` (measured vs
+uncached-equivalent) when cache usage was recorded (ADR-021).
 
 Local demos keep an in-memory sink by default. The CDK Observability stack already
 provisions the ≤3 CloudWatch dashboards and log groups as documented stubs

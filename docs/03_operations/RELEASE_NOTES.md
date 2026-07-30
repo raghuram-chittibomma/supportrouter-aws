@@ -3,6 +3,25 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — Prompt caching measurement (#72)
+
+### Measured metrics
+
+| Metric | Value | Evidence |
+|--------|-------|----------|
+| Judge prefix cache status (cold write + warm read) | `hit_and_write` | [`scorecard-v0.1-prompt-cache-2026-07-30.json`](../../evals/scorecards/scorecard-v0.1-prompt-cache-2026-07-30.json) |
+| Cache write / read tokens (that run) | `5109` write, `5109` read | same scorecard |
+| Measured vs uncached-equivalent cost (2 Converse calls) | `$0.00712915` vs `$0.01045` (**~31.8%** lower) | same scorecard `cache_comparison` |
+
+Basis: Haiku 4.5 on-demand rates with cache write/read pricing; uncached-equivalent prices all input tokens at the full input rate (ADR-021).
+
+### Explicitly not measured
+
+| Metric | Status |
+|--------|--------|
+| Runtime chat drafting cache savings | not measured (depends on AWS draft traffic within TTL) |
+| Conversation-history caching | deferred (ADR-005 / ADR-021) |
+
 ## v0.1.0 — Eval-Routed Agent Demo (2026-07-29)
 
 Technical delivery for milestone **v0.1 Eval-Routed Agent Demo**: classify →
@@ -28,7 +47,7 @@ separately for demo acceptance.
 |--------|--------|
 | Autonomous resolution rate (production-like traffic) | not measured |
 | Cost per conversation (runtime chat drafting) | not measured (local stub) |
-| Prompt-caching savings | not measured (`cache_enabled=false`) |
+| Prompt-caching savings | see Unreleased (#72) measured scorecard; v0.1.0 release assumed `cache_enabled=false` |
 | Idle cost (dormant month) | estimated ~$0–2 (ADR-008; not a billing extract) |
 
 ### What shipped

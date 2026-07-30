@@ -12,13 +12,18 @@ from pathlib import Path
 from typing import Any
 
 from supportrouter.bedrock_converse import converse_text, extract_json_object
-from supportrouter.graph import run_agent
-from supportrouter.observability import PLANE_EVAL
-
 from supportrouter.bedrock_models import (
     estimate_cost_usd,
     resolve_inference_profile,
 )
+from supportrouter.graph import run_agent
+from supportrouter.observability import PLANE_EVAL
+from supportrouter.prompt_cache import (
+    agent_cacheable_prefix,
+    converse_system_with_cache_point,
+)
+
+from evals.prompt_cache import judge_cacheable_prefix
 
 # Back-compat aliases for harness imports.
 LOGICAL_TO_INFERENCE_PROFILE = {
@@ -65,14 +70,12 @@ class BedrockCandidateRunner:
         local_output = run_agent(scenario["input"], plane=PLANE_EVAL)
         draft = converse_text(
             model_id=profile_id,
-            system=(
-                "You are SupportRouter drafting a customer support answer for the "
-                "fictional retailer VoltEdge Electronics. Use only supplied evidence."
-            ),
+            system=converse_system_with_cache_point(agent_cacheable_prefix()),
             user=_draft_user_prompt(scenario, local_output),
             max_tokens=400,
             temperature=0.0,
             client=self._client,
+            prompt_cache=True,
         )
         wall_time_ms = round((time.perf_counter() - started) * 1000, 3)
         draft_text = draft["text"]
@@ -111,11 +114,13 @@ class BedrockHaikuJudge:
     ) -> None:
         self.judge_model_id = judge_model_id
         self._client = client
+        self._rubric_path = rubric_path
         self._rubric = json.loads(rubric_path.read_text(encoding="utf-8"))
         version = self._rubric.get("judge_version")
         if not isinstance(version, str) or not version:
             raise ValueError("judge rubric requires judge_version")
         self.judge_version = version
+        self._cache_prefix = judge_cacheable_prefix(rubric_path)
 
     def evaluate(
         self,
@@ -154,15 +159,12 @@ class BedrockHaikuJudge:
         try:
             raw = converse_text(
                 model_id=self.judge_model_id,
-                system=(
-                    "You are an evaluation judge for synthetic VoltEdge support "
-                    "transcripts. Score only from supplied evidence. Return one JSON "
-                    "object and no markdown."
-                ),
+                system=converse_system_with_cache_point(self._cache_prefix),
                 user=user,
                 max_tokens=300,
                 temperature=0.0,
                 client=self._client,
+                prompt_cache=True,
             )
             scores = extract_json_object(raw["text"])
             faithfulness = int(scores["faithfulness"])

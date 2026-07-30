@@ -1,4 +1,4 @@
-"""Stable judge-rubric prefix for future Bedrock prompt caching."""
+"""Stable judge-rubric prefix for Bedrock prompt caching."""
 
 from __future__ import annotations
 
@@ -6,7 +6,12 @@ import json
 from pathlib import Path
 from typing import Any
 
-from supportrouter.prompt_cache import CacheablePrefix, build_cacheable_prefix
+from supportrouter.prompt_cache import (
+    JUDGE_CACHE_MIN_TOKENS,
+    CacheablePrefix,
+    build_cacheable_prefix,
+    deterministic_cache_padding,
+)
 
 DEFAULT_RUBRIC_PATH = Path(__file__).resolve().parent / "rubrics" / "v0.1_judge.json"
 
@@ -32,7 +37,10 @@ def judge_cacheable_prefix(
                 "kind": "judge_system",
                 "content": (
                     "Evaluate only the supplied synthetic scenario ground truth "
-                    "and candidate output. Return numeric rubric scores."
+                    "and candidate output. Return numeric rubric scores. "
+                    "You are an evaluation judge for synthetic VoltEdge support "
+                    "transcripts. Score only from supplied evidence. Return one "
+                    "JSON object and no markdown."
                 ),
                 "cache_checkpoint": True,
             },
@@ -42,6 +50,14 @@ def judge_cacheable_prefix(
                     stable_rubric,
                     sort_keys=True,
                     separators=(",", ":"),
+                ),
+                "cache_checkpoint": True,
+            },
+            {
+                "kind": "cache_padding",
+                "content": deterministic_cache_padding(
+                    label="eval-judge-rubric",
+                    min_tokens=JUDGE_CACHE_MIN_TOKENS,
                 ),
                 "cache_checkpoint": True,
             },

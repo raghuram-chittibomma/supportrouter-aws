@@ -35,8 +35,8 @@ from supportrouter.draft_honesty import (
     enforce_execution_honesty,
 )
 from supportrouter.prompt_cache import (
-    AGENT_SYSTEM_INSTRUCTIONS,
     agent_cacheable_prefix,
+    converse_system_with_cache_point,
     unavailable_cache_usage,
 )
 from supportrouter.retrieve import retrieve
@@ -286,12 +286,14 @@ def draft_node(state: AgentState) -> dict[str, Any]:
         "tool_calls": tool_calls,
         "instructions": HONEST_DRAFT_INSTRUCTIONS,
     }
+    agent_prefix = agent_cacheable_prefix()
     draft = converse_text(
         model_id=profile_id,
-        system=" ".join(AGENT_SYSTEM_INSTRUCTIONS),
+        system=converse_system_with_cache_point(agent_prefix),
         user=json.dumps(user_payload, indent=2),
         max_tokens=400,
         temperature=0.0,
+        prompt_cache=True,
     )
     text = draft["text"].strip()
     if not text:
@@ -524,12 +526,23 @@ def run_agent(
             "input_tokens": (draft_usage or {}).get("input_tokens"),
             "output_tokens": (draft_usage or {}).get("output_tokens"),
             "total_tokens": (draft_usage or {}).get("total_tokens"),
-            **unavailable_cache_usage(),
+            **(
+                {
+                    "cache_enabled": bool((draft_usage or {}).get("cache_enabled")),
+                    "cache_status": (draft_usage or {}).get("cache_status")
+                    or "not_configured",
+                    "cache_read_tokens": (draft_usage or {}).get("cache_read_tokens"),
+                    "cache_write_tokens": (draft_usage or {}).get("cache_write_tokens"),
+                }
+                if draft_usage and draft_usage.get("cache_enabled")
+                else unavailable_cache_usage()
+            ),
         },
         "cost_usd": draft_cost if cost_measured else None,
         "cost_status": "measured" if cost_measured else "not_measured",
         "cost_note": (
-            "tokens × published on-demand rates (draft only; Guardrails API not measured)"
+            "tokens × published on-demand rates incl. cache read/write when present "
+            "(draft only; Guardrails API not measured)"
             if cost_measured
             else "not measured (local stubs or missing Bedrock usage)"
         ),

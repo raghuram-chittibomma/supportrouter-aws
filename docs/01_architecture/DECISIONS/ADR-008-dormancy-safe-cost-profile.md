@@ -16,7 +16,7 @@ SupportRouter must have near-zero idle cost between demo periods. Almost the who
 4. **CloudWatch:** At most **3** dashboards. Log group retention **7–14 days** (default **14**), never “never expire” for SupportRouter log groups.
 5. **Network:** SupportRouter stacks create **no custom VPC and no NAT Gateway**.
 6. **Reseed / KB ingestion:** On-demand only (script after deploy). No standing ingestion EventBridge schedule while dormant.
-7. **Prompt caching (ADR-005):** Keep checkpoints (agent static prefix, conversation history, eval judge rubric). Until measured, cost planning assumes `cache_enabled=false`. Eval cost scoring may use effective/cached pricing only when scorecards record it.
+7. **Prompt caching (ADR-005 / ADR-021):** Keep checkpoints (agent static prefix, conversation history, eval judge rubric). Scorecards may record cache read/write and measured vs uncached-equivalent cost; README/release notes cite savings only from those artifacts.
 
 ## Active vs dormant cost model (estimated)
 

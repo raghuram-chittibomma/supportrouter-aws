@@ -144,6 +144,8 @@ def test_haiku_judge_scores_and_applies_threshold():
     assert judged["pass"] is True
     assert judged["scores"]["helpfulness"] == 4
     assert judged["cost_usd"] is not None
+    assert any("cachePoint" in block for block in client.calls[0]["system"])
+    assert judged["usage"]["cache_enabled"] is True
 
 
 def test_haiku_judge_fails_closed_on_bad_payload():

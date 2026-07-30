@@ -17,8 +17,13 @@ from typing import Any, Protocol, Sequence
 
 from evals.loader import ALLOWED_TOOLS, GOLDEN_DATASET_PATH, load_dataset
 from evals.prompt_cache import judge_cacheable_prefix
+from supportrouter.bedrock_models import (
+    estimate_cost_usd,
+    estimate_uncached_equivalent_cost_usd,
+)
 from supportrouter.graph import run_agent
 from supportrouter.observability import PLANE_EVAL
+from supportrouter.prompt_cache import derive_cache_status, unavailable_cache_usage
 
 DEFAULT_CANDIDATE_MODELS = (
     "logical:nova-micro",
@@ -153,6 +158,91 @@ def _select_scenarios(
     return capped
 
 
+def _usage_records(result: dict[str, Any]) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for key in ("usage",):
+        usage = result.get(key)
+        if isinstance(usage, dict):
+            records.append(usage)
+    judge = result.get("judge")
+    if isinstance(judge, dict) and isinstance(judge.get("usage"), dict):
+        records.append(judge["usage"])
+    return records
+
+
+def _aggregate_cache_fields(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Roll up cache usage from candidate and judge records into scorecard fields."""
+    enabled_usages: list[dict[str, Any]] = []
+    for result in results:
+        for usage in _usage_records(result):
+            if usage.get("cache_enabled") is True:
+                enabled_usages.append(usage)
+
+    if not enabled_usages:
+        return {
+            **unavailable_cache_usage(),
+            "cache_comparison": None,
+        }
+
+    read_total = sum(int(u.get("cache_read_tokens") or 0) for u in enabled_usages)
+    write_total = sum(int(u.get("cache_write_tokens") or 0) for u in enabled_usages)
+    status = derive_cache_status(
+        cache_enabled=True,
+        cache_read_tokens=read_total,
+        cache_write_tokens=write_total,
+    )
+    if read_total > 0 and write_total > 0:
+        status = "hit_and_write"
+
+    measured_costs: list[float] = []
+    uncached_costs: list[float] = []
+    for result in results:
+        for usage in _usage_records(result):
+            if usage.get("cache_enabled") is not True:
+                continue
+            model_id = None
+            if usage is result.get("usage"):
+                model_id = result.get("actual_model_id")
+            elif isinstance(result.get("judge"), dict):
+                model_id = result["judge"].get("model_id")
+            if not isinstance(model_id, str) or not model_id:
+                continue
+            measured = estimate_cost_usd(model_id, usage)
+            uncached = estimate_uncached_equivalent_cost_usd(model_id, usage)
+            if measured is not None:
+                measured_costs.append(measured)
+            if uncached is not None:
+                uncached_costs.append(uncached)
+
+    comparison = None
+    if measured_costs and uncached_costs and len(measured_costs) == len(uncached_costs):
+        measured_total = round(sum(measured_costs), 8)
+        uncached_total = round(sum(uncached_costs), 8)
+        savings = round(uncached_total - measured_total, 8)
+        comparison = {
+            "basis": (
+                "tokens × published on-demand rates; cache read/write priced "
+                "separately vs uncached-equivalent (all input at full input rate)"
+            ),
+            "measured_cost_usd": measured_total,
+            "uncached_equivalent_cost_usd": uncached_total,
+            "savings_usd": savings,
+            "savings_pct": (
+                round((savings / uncached_total) * 100.0, 4)
+                if uncached_total > 0
+                else None
+            ),
+        }
+
+    return {
+        "cache_enabled": True,
+        "cache_status": status,
+        "cache_read_tokens": read_total,
+        "cache_write_tokens": write_total,
+        "cache_comparison": comparison,
+    }
+
+
 def _result_total_cost_usd(result: dict[str, Any]) -> float | None:
     """Sum candidate + judge cost when the run's measured spend is complete.
 
@@ -276,6 +366,8 @@ def run_harness(
     if not cost_measured:
         incomplete_reasons.append("Bedrock token usage and cost were not measured.")
 
+    cache_fields = _aggregate_cache_fields(results)
+
     return {
         "schema_version": "v0.1",
         "scorecard_id": scorecard_id or f"scorecard-{uuid.uuid4()}",
@@ -284,8 +376,11 @@ def run_harness(
         "judge_version": active_judge.judge_version,
         "model_ids": list(candidate_model_ids),
         "execution_mode": active_runner.execution_mode,
-        "cache_enabled": False,
-        "cache_status": "not_configured",
+        "cache_enabled": cache_fields["cache_enabled"],
+        "cache_status": cache_fields["cache_status"],
+        "cache_read_tokens": cache_fields["cache_read_tokens"],
+        "cache_write_tokens": cache_fields["cache_write_tokens"],
+        "cache_comparison": cache_fields["cache_comparison"],
         "judge_prompt_cache": {
             "prefix_name": judge_prefix.name,
             "prefix_version": judge_prefix.version,
@@ -311,7 +406,7 @@ def run_harness(
         "cost": {
             "status": "measured" if cost_measured else "not_measured",
             "basis": (
-                "tokens × published on-demand rates"
+                "tokens × published on-demand rates (incl. cache read/write when present)"
                 if cost_measured
                 else None
             ),
