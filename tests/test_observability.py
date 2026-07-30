@@ -15,7 +15,9 @@ from supportrouter.observability import (
     InMemoryTraceSink,
     LoggingTraceSink,
     clear_traces,
+    configure_lambda_trace_sink,
     emit_conversation_end,
+    get_trace_sink,
     instrument_node,
     list_traces,
     set_trace_sink,
@@ -276,3 +278,14 @@ def test_agent_step_catalog_covers_runtime_nodes():
         "confidence",
         "hitl",
     )
+
+
+def test_configure_lambda_trace_sink_only_activates_in_lambda(monkeypatch):
+    monkeypatch.delenv("AWS_LAMBDA_FUNCTION_NAME", raising=False)
+    set_trace_sink(InMemoryTraceSink())
+    assert configure_lambda_trace_sink() is False
+    assert isinstance(get_trace_sink(), InMemoryTraceSink)
+
+    monkeypatch.setenv("AWS_LAMBDA_FUNCTION_NAME", "supportrouter-chat")
+    assert configure_lambda_trace_sink() is True
+    assert isinstance(get_trace_sink(), LoggingTraceSink)

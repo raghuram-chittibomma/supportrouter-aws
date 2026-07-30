@@ -45,9 +45,13 @@ CLI/UI calls default to `plane=runtime`.
 
 - Local behavior can be tested without AWS or network access.
 - Event consumers must honor `schema_version`.
-- The in-memory sink is process-local and unbounded; production Lambda startup
-  must select the logging/CloudWatch sink.
-- Live metric widgets, alarms, Bedrock usage, and scorecard correlation remain
-  AWS follow-up work.
+- The in-memory sink is process-local and unbounded; the chat Lambda selects
+  `LoggingTraceSink` at import when `AWS_LAMBDA_FUNCTION_NAME` is set (#71).
+  Structured JSON lands in `/aws/lambda/supportrouter-chat`. Dedicated
+  `/supportrouter/.../agent` and `/evals` log groups remain reserved until a
+  writer is wired.
+- Live metric widgets and chat error/throttle alarms ship on
+  `SupportRouter-Observability` (≤3 dashboards, 14-day retention). Dollar spend
+  and cache savings still come from budgets/scorecards, not dashboard widgets.
 - Message content is not logged; only minimized attributes such as character
   counts, task type, model ID, and result counts are emitted.

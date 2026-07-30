@@ -13,7 +13,12 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-from supportrouter_infra.constants import PROJECT_NAME
+from supportrouter_infra.constants import (
+    GET_ORDER_STATUS_FUNCTION_NAME,
+    INITIATE_RETURN_FUNCTION_NAME,
+    ISSUE_REFUND_FUNCTION_NAME,
+    PROJECT_NAME,
+)
 
 TOOLS_ASSET = str(Path(__file__).resolve().parents[2] / "tools")
 TOOL_HANDLER_FILES = {
@@ -43,7 +48,7 @@ class ToolsStack(cdk.Stack):
 
         status_function = self._tool_function(
             logical_id="GetOrderStatus",
-            function_name=f"{PROJECT_NAME}-get-order-status",
+            function_name=GET_ORDER_STATUS_FUNCTION_NAME,
             handler="get_order_status.handler",
             environment={"ORDERS_TABLE_NAME": orders.table_name},
             read_table_arns=[orders.table_arn],
@@ -51,7 +56,7 @@ class ToolsStack(cdk.Stack):
         )
         return_function = self._tool_function(
             logical_id="InitiateReturn",
-            function_name=f"{PROJECT_NAME}-initiate-return",
+            function_name=INITIATE_RETURN_FUNCTION_NAME,
             handler="initiate_return.handler",
             environment={
                 "ORDERS_TABLE_NAME": orders.table_name,
@@ -62,7 +67,7 @@ class ToolsStack(cdk.Stack):
         )
         refund_function = self._tool_function(
             logical_id="IssueRefund",
-            function_name=f"{PROJECT_NAME}-issue-refund",
+            function_name=ISSUE_REFUND_FUNCTION_NAME,
             handler="issue_refund.handler",
             environment={
                 "ORDERS_TABLE_NAME": orders.table_name,

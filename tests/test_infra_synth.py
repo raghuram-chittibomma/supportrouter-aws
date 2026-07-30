@@ -158,12 +158,19 @@ def test_observability_caps(env: cdk.Environment) -> None:
     stack = ObservabilityStack(app, "Obs", env=env)
     template = Template.from_stack(stack)
     template.resource_count_is("AWS::CloudWatch::Dashboard", 3)
+    template.resource_count_is("AWS::CloudWatch::Alarm", 2)
     template.has_resource_properties(
         "AWS::Logs::LogGroup",
         {"RetentionInDays": 14},
     )
     raw = json.dumps(template.to_json())
     assert "AWS::EC2::VPC" not in raw
+    assert "supportrouter-chat" in raw
+    assert "AWS/Lambda" in raw
+    assert "AWS/Bedrock" in raw
+    assert "supportrouter-runtime" in raw
+    assert "supportrouter-cost-signals" in raw
+    assert "supportrouter-evals" in raw
 
 
 def test_bedrock_guardrail_covers_input_output_and_version(env: cdk.Environment) -> None:

@@ -86,10 +86,11 @@ Agent results expose `prompt_cache.prefix_name`, `prefix_version`, and
 `judge_prompt_cache`, plus optional top-level `cache_comparison` (measured vs
 uncached-equivalent) when cache usage was recorded (ADR-021).
 
-Local demos keep an in-memory sink by default. The CDK Observability stack already
-provisions the ≤3 CloudWatch dashboards and log groups as documented stubs
-(`infra/supportrouter_infra/observability_stack.py`); live metric widgets remain
-deferred until runtime Lambdas and Bedrock calls land.
+Local demos keep an in-memory sink by default. Inside the chat Lambda,
+`LoggingTraceSink` writes JSON lines to `/aws/lambda/supportrouter-chat`. The
+CDK Observability stack (`SupportRouter-Observability`) provisions ≤3 dashboards
+with Lambda/Bedrock metric widgets, 14-day reserved agent/eval log groups, and
+chat error/throttle alarms without SNS actions (ADR-008 / #71).
 
 ## Confidence and HITL policy
 
