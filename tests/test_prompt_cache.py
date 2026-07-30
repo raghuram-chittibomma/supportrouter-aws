@@ -24,7 +24,7 @@ def test_agent_prefix_is_stable_versioned_and_ordered():
 
     assert first == second
     assert first.name == "agent-system-tools"
-    assert first.version == "agent-prefix-v0.1"
+    assert first.version == "agent-prefix-v0.2"
     assert len(first.sha256) == 64
     assert [block["kind"] for block in first.blocks] == [
         "system",
@@ -96,5 +96,5 @@ def test_local_cache_usage_is_explicitly_unavailable():
     assert result["usage"]["cache_read_tokens"] is None
     assert result["usage"]["cache_write_tokens"] is None
     assert result["prompt_cache"]["prefix_name"] == "agent-system-tools"
-    assert result["prompt_cache"]["prefix_version"] == "agent-prefix-v0.1"
+    assert result["prompt_cache"]["prefix_version"] == "agent-prefix-v0.2"
     assert len(result["prompt_cache"]["prefix_sha256"]) == 64

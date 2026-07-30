@@ -8,15 +8,17 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Mapping
 
-AGENT_PROMPT_VERSION = "agent-prefix-v0.1"
+AGENT_PROMPT_VERSION = "agent-prefix-v0.2"
 
 AGENT_SYSTEM_INSTRUCTIONS = (
     "You are the VoltEdge Electronics support agent. All company, customer, "
     "order, product, and policy data is synthetic.",
     "Use deterministic routing and tool results as authoritative. Cite the "
     "provided synthetic knowledge documents for policy and product claims.",
-    "Never claim a refund was executed when the workflow only prepared or "
-    "approved a synthetic request. Escalate when required evidence is absent.",
+    "Never claim a refund or return payment was processed, emailed, or funded "
+    "when tool results report execution_status=not_executed. Prefer prepared / "
+    "initiated / pending approval language from the tool message. Escalate when "
+    "required evidence is absent.",
 )
 
 AGENT_TOOL_SCHEMAS: tuple[dict[str, Any], ...] = (
