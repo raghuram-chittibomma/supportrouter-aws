@@ -2,7 +2,9 @@
 
 Eval-driven AI customer support agent for **VoltEdge Electronics** (fictional DTC consumer electronics retailer), built on AWS Bedrock + LangGraph with a GitHub-first SDLC.
 
-> **Measured metrics only.** The README will cite autonomous resolution rate, cost per conversation, caching savings, and eval pass rates only after scorecard artifacts exist. Until then: **not measured**.
+> **Measured metrics only.** Cite autonomous resolution rate, cost per conversation, caching savings, and eval pass rates only from scorecard or release-note evidence.
+>
+> Live v0.1 golden eval (3 models × `order_status` + `faq_policy`, capped): **overall_pass=true**, Bedrock cost **~$0.0102** (tokens × published rates). Evidence: [`evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json`](evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json). Runtime chat drafting cost remains **not measured** (local stub). See [`docs/03_operations/RELEASE_NOTES.md`](docs/03_operations/RELEASE_NOTES.md).
 
 ## Quick start (local LangGraph agent)
 
@@ -26,7 +28,7 @@ python -m supportrouter.ui
 
 Local-only process — **no always-on AWS UI hosting**. Cost note: not measured.
 
-Runtime path (local stubs, no Bedrock yet): validate → classify → route → retrieve|tools → draft → confidence → HITL.
+Runtime path (local stubs for drafting; optional DynamoDB HITL persistence when table env vars are set): validate → classify → route → retrieve|tools → draft → confidence → HITL.
 
 
 ## Docs

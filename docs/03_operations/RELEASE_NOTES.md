@@ -1,30 +1,49 @@
 # Release Notes
 
-Canonical releases: GitHub Releases. This file mirrors **measured** results only.
+Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
+This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
-## Unreleased / dormancy-safe revision
+## v0.1.0 — Eval-Routed Agent Demo (2026-07-29)
+
+Technical delivery for milestone **v0.1 Eval-Routed Agent Demo**: classify →
+route → retrieve/tools → draft → confidence → HITL, plus a measured live
+Bedrock eval scorecard. Chat drafting remains a **local stub** (no Bedrock
+invoke on the chat Lambda). Product walkthrough stories (#44–#50) are tracked
+separately for demo acceptance.
+
+### Measured metrics
 
 | Metric | Value | Evidence |
 |--------|-------|----------|
-| Autonomous resolution rate | not measured | — |
-| Cost per conversation | not measured | — |
-| Prompt-caching savings | not measured | — |
-| Chat Lambda cold start | measured 2204 ms Init Duration | CloudWatch REPORT for `supportrouter-chat` on 2026-07-17 |
-| Chat API end-to-end (cold) | measured ~3892 ms | first live `POST /chat` |
-| Chat API end-to-end (warm) | measured ~407 ms | second live `POST /chat` |
-| Live golden eval (3 models × 2 tasks, capped) | overall_pass=true | `evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json` |
-| Live eval Bedrock cost (token × rates) | measured $0.0102 | same scorecard; basis published on-demand rates |
-| HITL DynamoDB persistence | deployed (Sessions + ApprovalRequests) | SupportRouter-Api outputs; ADR-017; cost not measured |
-| Idle cost (dormant month) | estimated ~$0–2 | ADR-008 assumptions; stacks destroyed |
-| OpenSearch Serverless | forbidden | ADR-007; synth tests assert no AOSS |
+| Golden eval overall pass (3 models × 2 tasks, capped) | `true` | [`scorecard-v0.1-live-bedrock-2026-07-29.json`](../../evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json) |
+| Programmatic pass rate (that run) | `1.0` (6/6) | same scorecard `summary` |
+| Live eval Bedrock cost | `$0.0102` | same scorecard `cost.total_usd`; basis: tokens × published on-demand rates |
+| Chat Lambda cold start (Init Duration) | `2204 ms` | CloudWatch REPORT for `supportrouter-chat` on 2026-07-17 |
+| Chat API end-to-end (cold) | `~3892 ms` | first live `POST /chat` |
+| Chat API end-to-end (warm) | `~407 ms` | second live `POST /chat` |
 
-Infra: CDK stacks for CostGuardrails, KnowledgeBase (S3 Vectors), versioned
-Bedrock Guardrails, isolated Lambda tools/on-demand DynamoDB, a throttled HTTP
-chat edge (`SupportRouter-Api`, ADR-014), Observability (≤3 dashboards, 14d
-logs), and EvalSchedule (rule only if `enable_reeval_schedule=true`).
+### Explicitly not measured
 
-Edge: CLI (`supportrouter.cli`, now with `--session-id`) and an HTTP chat Lambda
-(`supportrouter.api.handler`) both wrap `run_agent`. Drafting is a local stub, so
-the edge grants no Bedrock/DynamoDB permissions and cost stays `not_measured`.
-The chat Lambda asset now includes pinned ARM64 runtime dependencies and
-synthetic fixtures (ADR-015), enabling live local-stub invocation.
+| Metric | Status |
+|--------|--------|
+| Autonomous resolution rate (production-like traffic) | not measured |
+| Cost per conversation (runtime chat drafting) | not measured (local stub) |
+| Prompt-caching savings | not measured (`cache_enabled=false`) |
+| Idle cost (dormant month) | estimated ~$0–2 (ADR-008; not a billing extract) |
+
+### What shipped
+
+- **Runtime:** LangGraph agent with deterministic confidence (ADR-009), refund HITL threshold (ADR-010/017), local + managed KB retrieve path, isolated Lambda tools.
+- **Edge:** HTTP `POST /chat` (ADR-014/015) with Sessions + ApprovalRequests DynamoDB persistence; CLI `list-pending` / `decide`.
+- **Eval:** Local-stub harness default; `--live` Bedrock Converse candidates + Haiku 4.5 judge (ADR-016); scorecard artifact under `evals/scorecards/`.
+- **Cost guardrails:** $20/mo budget tag `Project=supportrouter`; dormancy-safe CDK defaults (ADR-008); OpenSearch Serverless forbidden (ADR-007).
+
+### Release-readiness notes
+
+- Implementation issues for the technical demo path are closed; open milestone items are product stories (#44–#50) for walkthrough acceptance (deferred from this release tag).
+- Synthetic data only; no real customer content.
+- Cost note for this release process: **not measured** beyond the linked scorecard token estimate.
+
+## Prior notes
+
+Earlier “Unreleased / dormancy-safe revision” content is superseded by **v0.1.0** above.
