@@ -56,6 +56,9 @@ def test_local_scorecard_never_claims_model_judge_or_cost_execution():
     }
     assert scorecard["cache_enabled"] is False
     assert scorecard["cache_status"] == "not_configured"
+    assert scorecard["cache_read_tokens"] is None
+    assert scorecard["cache_write_tokens"] is None
+    assert scorecard["cache_comparison"] is None
     assert scorecard["judge_prompt_cache"]["prefix_name"] == "eval-judge-rubric"
     assert len(scorecard["judge_prompt_cache"]["prefix_sha256"]) == 64
     assert len(scorecard["incomplete_reasons"]) == 3

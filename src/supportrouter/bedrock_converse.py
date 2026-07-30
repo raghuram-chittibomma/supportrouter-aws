@@ -1,10 +1,16 @@
-"""Thin Bedrock Runtime Converse helper for eval and future drafting adapters."""
+"""Thin Bedrock Runtime Converse helper for eval and drafting adapters."""
 
 from __future__ import annotations
 
 import json
 import re
-from typing import Any
+from typing import Any, Mapping, Sequence
+
+from supportrouter.prompt_cache import (
+    cache_usage_from_bedrock,
+    normalize_system_blocks,
+    unavailable_cache_usage,
+)
 
 _JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
 
@@ -12,26 +18,31 @@ _JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
 def converse_text(
     *,
     model_id: str,
-    system: str,
+    system: str | Sequence[Mapping[str, Any]],
     user: str,
     max_tokens: int = 512,
     temperature: float = 0.0,
     client: Any | None = None,
+    prompt_cache: bool = False,
 ) -> dict[str, Any]:
     """Invoke Bedrock Converse and return text plus usage.
 
+    When ``prompt_cache`` is True, a Converse ``cachePoint`` is appended to the
+    system blocks (unless one is already present). Usage includes
+    ``cache_enabled``, ``cache_status``, and cache read/write token fields.
+
     Returns:
-        ``{"text": str, "usage": {"input_tokens", "output_tokens", "total_tokens"},
-        "stop_reason": str | None, "model_id": str}``
+        ``{"text": str, "usage": {...}, "stop_reason": str | None, "model_id": str}``
     """
     if client is None:
         import boto3
 
         client = boto3.client("bedrock-runtime")
 
+    system_blocks = normalize_system_blocks(system, prompt_cache=prompt_cache)
     response = client.converse(
         modelId=model_id,
-        system=[{"text": system}],
+        system=system_blocks,
         messages=[{"role": "user", "content": [{"text": user}]}],
         inferenceConfig={
             "maxTokens": max_tokens,
@@ -48,12 +59,18 @@ def converse_text(
     total_tokens = usage.get("totalTokens")
     if total_tokens is None and input_tokens is not None and output_tokens is not None:
         total_tokens = int(input_tokens) + int(output_tokens)
+    cache_fields = (
+        cache_usage_from_bedrock(usage, cache_enabled=True)
+        if prompt_cache
+        else unavailable_cache_usage()
+    )
     return {
         "text": "".join(text_parts).strip(),
         "usage": {
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "total_tokens": total_tokens,
+            **cache_fields,
         },
         "stop_reason": response.get("stopReason"),
         "model_id": model_id,

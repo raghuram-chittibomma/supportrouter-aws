@@ -77,13 +77,16 @@ One agent query can trigger **multiple** Bedrock invocations (routing candidates
 
 ## Prompt caching and effective pricing
 
-ADR-005 cache checkpoints:
+ADR-005 / ADR-021 cache checkpoints:
 
-1. Agent static system prompt + tool schema prefix
-2. Conversation history segments (when supported)
-3. Eval judge rubric prefix
+1. Agent static system prompt + tool schema prefix (+ deterministic padding)
+2. Conversation history segments (when supported; deferred)
+3. Eval judge rubric prefix (+ deterministic padding)
 
-Until scorecards record cache hits, planning and README claims assume **`cache_enabled=false`**. Eval cost scoring may use **effective (cached) pricing** only when the harness measures and stores cache hit data.
+AWS Converse paths send `cachePoint` and record cache read/write tokens.
+Local stubs remain **`cache_enabled=false`**. Cite caching savings in README /
+release notes only from a measured scorecard artifact (see
+`scripts/measure_prompt_cache.py`).
 
 ## Schedule default-off (dormancy)
 

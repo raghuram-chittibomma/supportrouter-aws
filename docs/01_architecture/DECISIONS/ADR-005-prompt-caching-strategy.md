@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-021](ADR-021-bedrock-prompt-caching-wiring.md)
 
 ## Context
 
@@ -22,3 +22,4 @@ Measure cache hit savings in scorecards/observability before claiming README met
 
 - Prompt layout must keep cacheable content stable and ordered per Bedrock guidance.
 - If a model lacks caching, router/observability records `cache_enabled=false` — no fabricated savings.
+- **Supersession:** ADR-021 wires Converse `cachePoint`, padded prefixes for model minima, usage mapping, and measured scorecard comparison.

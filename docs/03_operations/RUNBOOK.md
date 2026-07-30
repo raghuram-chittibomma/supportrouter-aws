@@ -134,21 +134,23 @@ $env:SUPPORTROUTER_GUARDRAIL_VERSION = "1"
 python -m supportrouter.ui
 ```
 
-### Prompt caching hooks
+### Prompt caching (ADR-021)
 
-Versioned cacheable prefixes are available for:
+Versioned cacheable prefixes with Converse `cachePoint`:
 
-- agent static system instructions + tool schemas (`agent-prefix-v0.1`)
-- eval judge system instructions + rubric (`v0.1-haiku-4.5`)
+- agent static system + tool schemas + padding (`agent-prefix-v0.3`)
+- eval judge system + rubric + padding (`v0.1-haiku-4.5`)
 
-These are identity/digest contracts until a Bedrock adapter consumes
-`CacheablePrefix.blocks`. Request messages, session IDs, correlation IDs, and
-scenario inputs are appended outside these stable prefixes. Local runs and
-scorecards report `cache_enabled=false`, `cache_status=not_configured`, and null
-cache token counts. Agent results and scorecards include the applicable prefix
-version and SHA-256 digest. Conversation-end events forward cache read/write
-usage when a future provider adapter supplies it. Do not claim cache savings
-until a supported Bedrock model/region returns measured cache-read/write usage.
+AWS draft and live eval paths set `prompt_cache=True`. Local stubs stay
+`cache_enabled=false` / `cache_status=not_configured`. Scorecards aggregate
+`cache_read_tokens` / `cache_write_tokens` and optional `cache_comparison`
+(measured vs uncached-equivalent). Measure judge hit/miss with:
+
+```powershell
+python scripts/measure_prompt_cache.py
+```
+
+Cite README/release caching savings only from a scorecard under `evals/scorecards/`.
 
 ## AWS deploy
 

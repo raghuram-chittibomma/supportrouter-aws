@@ -4,7 +4,7 @@ Eval-driven AI customer support agent for **VoltEdge Electronics** (fictional DT
 
 > **Measured metrics only.** Cite autonomous resolution rate, cost per conversation, caching savings, and eval pass rates only from scorecard or release-note evidence.
 >
-> Live v0.1 golden eval (3 models × `order_status` + `faq_policy`, capped): **overall_pass=true**, Bedrock cost **~$0.0102** (tokens × published rates). Evidence: [`evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json`](evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json). Runtime chat drafting cost remains **not measured** (local stub). See [`docs/03_operations/RELEASE_NOTES.md`](docs/03_operations/RELEASE_NOTES.md).
+> Live v0.1 golden eval (3 models × `order_status` + `faq_policy`, capped): **overall_pass=true**, Bedrock cost **~$0.0102** (tokens × published rates). Evidence: [`evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json`](evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json). Judge prompt-cache hit/miss (Haiku 4.5): measured cost **~$0.00713** vs uncached-equivalent **~$0.01045** (~31.8% lower) on a 2-call write+read probe — [`evals/scorecards/scorecard-v0.1-prompt-cache-2026-07-30.json`](evals/scorecards/scorecard-v0.1-prompt-cache-2026-07-30.json). Runtime chat drafting cost remains **not measured** (local stub). See [`docs/03_operations/RELEASE_NOTES.md`](docs/03_operations/RELEASE_NOTES.md).
 
 ## Quick start (local LangGraph agent)
 

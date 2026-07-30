@@ -66,7 +66,7 @@ class ObservabilityStack(cdk.Stack):
                 markdown=(
                     "# Cost signals\n"
                     "Track Bedrock invocation counts and estimated spend. "
-                    "Assume `cache_enabled=false` until scorecards measure hits (ADR-005/008)."
+                    "Cite cache savings only from measured scorecards (ADR-021)."
                 ),
                 width=24,
                 height=4,
