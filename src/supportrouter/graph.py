@@ -150,6 +150,8 @@ def retrieve_node(state: AgentState) -> dict[str, Any]:
             notes = notes + [f"retrieve:aws_fallback_local:{len(citations)}"]
         else:
             notes = notes + [f"retrieve:local:{len(citations)}"]
+    if not citations:
+        notes = notes + ["retrieve:relevance_empty"]
     return {
         "citations": citations,
         "retrieve_provider": provider,
