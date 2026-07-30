@@ -30,7 +30,15 @@ from supportrouter.observability import (
     instrument_node,
     new_correlation_id,
 )
-from supportrouter.prompt_cache import agent_cacheable_prefix, unavailable_cache_usage
+from supportrouter.draft_honesty import (
+    HONEST_DRAFT_INSTRUCTIONS,
+    enforce_execution_honesty,
+)
+from supportrouter.prompt_cache import (
+    AGENT_SYSTEM_INSTRUCTIONS,
+    agent_cacheable_prefix,
+    unavailable_cache_usage,
+)
 from supportrouter.retrieve import retrieve
 from supportrouter.router import route
 from supportrouter.runtime_mode import RuntimeMode, normalize_runtime_mode
@@ -246,13 +254,20 @@ def draft_node(state: AgentState) -> dict[str, Any]:
     if state.get("error"):
         return {}
     mode = state.get("runtime_mode") or "local"
+    tool_calls = list(state.get("tool_calls") or [])
     if mode != "aws":
+        answer, rewritten = enforce_execution_honesty(
+            _draft_local_answer(state), tool_calls
+        )
+        notes = _notes(state) + ["draft:local"]
+        if rewritten:
+            notes = notes + ["draft:honesty_rewrite"]
         return {
-            "answer": _draft_local_answer(state),
+            "answer": answer,
             "draft_usage": None,
             "draft_cost_usd": None,
             "actual_model_id": state.get("model_id"),
-            "notes": _notes(state) + ["draft:local"],
+            "notes": notes,
         }
 
     routed = state.get("model_id") or "amazon.nova-micro"
@@ -261,19 +276,12 @@ def draft_node(state: AgentState) -> dict[str, Any]:
         "customer_message": state.get("message"),
         "task_type": state.get("task_type"),
         "citations": state.get("citations") or [],
-        "tool_calls": state.get("tool_calls") or [],
-        "instructions": (
-            "Draft a concise VoltEdge Electronics customer support reply using "
-            "only the provided synthetic tool results and citations. Do not invent "
-            "orders, policies, or amounts."
-        ),
+        "tool_calls": tool_calls,
+        "instructions": HONEST_DRAFT_INSTRUCTIONS,
     }
     draft = converse_text(
         model_id=profile_id,
-        system=(
-            "You are SupportRouter for the fictional retailer VoltEdge Electronics. "
-            "Use only supplied evidence."
-        ),
+        system=" ".join(AGENT_SYSTEM_INSTRUCTIONS),
         user=json.dumps(user_payload, indent=2),
         max_tokens=400,
         temperature=0.0,
@@ -284,13 +292,17 @@ def draft_node(state: AgentState) -> dict[str, Any]:
             "I could not draft a Bedrock response for this turn. "
             "Please try again or switch to Local mode."
         )
+    text, rewritten = enforce_execution_honesty(text, tool_calls)
     usage = draft["usage"]
+    notes = _notes(state) + [f"draft:aws:{profile_id}"]
+    if rewritten:
+        notes = notes + ["draft:honesty_rewrite"]
     return {
         "answer": text,
         "draft_usage": usage,
         "draft_cost_usd": estimate_cost_usd(profile_id, usage),
         "actual_model_id": profile_id,
-        "notes": _notes(state) + [f"draft:aws:{profile_id}"],
+        "notes": notes,
     }
 
 
