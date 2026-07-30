@@ -73,6 +73,24 @@ def test_apply_guardrail_allow_and_block(monkeypatch):
     assert block_client.calls[0]["source"] == "OUTPUT"
 
 
+def test_apply_guardrail_api_error_fails_closed(monkeypatch):
+    monkeypatch.setenv("SUPPORTROUTER_GUARDRAIL_ID", "gr-test")
+    monkeypatch.setenv("SUPPORTROUTER_GUARDRAIL_VERSION", "1")
+
+    class BoomClient:
+        def apply_guardrail(self, **kwargs):
+            raise RuntimeError("bedrock unavailable")
+
+    assessment = apply_guardrail(
+        "hello",
+        stage="input",
+        client=BoomClient(),
+    )
+    assert assessment.action == "blocked"
+    assert assessment.provider == "bedrock"
+    assert "guardrail_unavailable" in assessment.categories
+
+
 def test_aws_mode_missing_guardrail_env_fails_closed(monkeypatch):
     monkeypatch.delenv("SUPPORTROUTER_GUARDRAIL_ID", raising=False)
     monkeypatch.delenv("SUPPORTROUTER_GUARDRAIL_VERSION", raising=False)

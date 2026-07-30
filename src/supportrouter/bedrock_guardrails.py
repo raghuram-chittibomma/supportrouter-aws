@@ -105,12 +105,22 @@ def apply_guardrail(
         )
 
     source = "INPUT" if stage == "input" else "OUTPUT"
-    response = _client(client).apply_guardrail(
-        guardrailIdentifier=resolved_id,
-        guardrailVersion=resolved_version,
-        source=source,
-        content=[{"text": {"text": text or ""}}],
-    )
+    try:
+        response = _client(client).apply_guardrail(
+            guardrailIdentifier=resolved_id,
+            guardrailVersion=resolved_version,
+            source=source,
+            content=[{"text": {"text": text or ""}}],
+        )
+    except Exception:  # noqa: BLE001 — fail closed on Bedrock/API errors
+        return GuardrailAssessment(
+            stage=stage,
+            action="blocked",
+            categories=("guardrail_unavailable",),
+            guardrail_identifier=resolved_id,
+            guardrail_version=resolved_version,
+            provider="bedrock",
+        )
     intervened = response.get("action") == "GUARDRAIL_INTERVENED"
     categories = _categories_from_assessments(list(response.get("assessments") or []))
     if intervened and not categories:
