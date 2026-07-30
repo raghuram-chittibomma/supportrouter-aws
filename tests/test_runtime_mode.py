@@ -108,7 +108,22 @@ def test_aws_faq_reports_local_retrieve_fallback(monkeypatch):
     )
 
 
-def test_invoke_tool_requires_function_env(monkeypatch):
+def test_invoke_tool_uses_cdk_default_function_name(monkeypatch):
     monkeypatch.delenv("GET_ORDER_STATUS_FUNCTION_NAME", raising=False)
-    with pytest.raises(RuntimeError, match="GET_ORDER_STATUS_FUNCTION_NAME"):
-        invoke_tool("get_order_status", order_id="VE-1001")
+
+    class FakeLambda:
+        def invoke(self, **kwargs):
+            assert kwargs["FunctionName"] == "supportrouter-get-order-status"
+            body = json.dumps({"ok": True, "order_id": "VE-1001"}).encode("utf-8")
+
+            class _Payload:
+                def read(self_inner):
+                    return body
+
+            return {"Payload": _Payload()}
+
+    monkeypatch.setattr(
+        "supportrouter.tools_aws._client", lambda client=None: FakeLambda()
+    )
+    payload = invoke_tool("get_order_status", order_id="VE-1001")
+    assert payload["order_id"] == "VE-1001"

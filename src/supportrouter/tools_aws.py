@@ -12,6 +12,14 @@ TOOL_ENV = {
     "issue_refund": "ISSUE_REFUND_FUNCTION_NAME",
 }
 
+# CDK ToolsStack names (PROJECT_NAME=supportrouter). Used when env is unset so
+# local Gradio/CLI aws mode works without copying Lambda env vars by hand.
+DEFAULT_FUNCTION_NAMES = {
+    "get_order_status": "supportrouter-get-order-status",
+    "initiate_return": "supportrouter-initiate-return",
+    "issue_refund": "supportrouter-issue-refund",
+}
+
 
 def _client(client: Any | None = None) -> Any:
     if client is not None:
@@ -24,12 +32,9 @@ def _client(client: Any | None = None) -> Any:
 def _function_name(tool: str) -> str:
     env_key = TOOL_ENV[tool]
     name = os.environ.get(env_key, "").strip()
-    if not name:
-        raise RuntimeError(
-            f"{env_key} is required for AWS tool '{tool}'. "
-            "Deploy SupportRouter-Tools and set the function name env var."
-        )
-    return name
+    if name:
+        return name
+    return DEFAULT_FUNCTION_NAMES[tool]
 
 
 def invoke_tool(
