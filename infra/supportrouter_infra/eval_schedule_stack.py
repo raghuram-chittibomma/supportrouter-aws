@@ -1,4 +1,11 @@
-"""Optional EventBridge re-eval schedule — default OFF (ADR-008)."""
+"""Optional EventBridge re-eval schedule — default OFF (ADR-008 / #75).
+
+Always provisions a placeholder Step Functions machine + 14-day log group so
+operators can deploy scaffolding. Creates an EventBridge rule **only** when
+``enable_reeval_schedule=true``. Prefer on-demand ``python -m evals.harness``
+(or ``--live``) for manual runs; flip the CDK context only when a standing
+weekly schedule is intentionally wanted.
+"""
 
 from __future__ import annotations
 
@@ -25,7 +32,7 @@ class EvalScheduleStack(cdk.Stack):
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # Stub state machine until issue #17 wires the real eval harness.
+        # Placeholder until a future slice wires SFN Map → live harness.
         log_group = logs.LogGroup(
             self,
             "EvalStubLogs",
@@ -39,11 +46,17 @@ class EvalScheduleStack(cdk.Stack):
         definition = sfn.Pass(
             self,
             "EvalPlaceholder",
-            comment="Replace with Step Functions Map fan-out when eval harness (#17) lands",
+            comment=(
+                "Placeholder — replace with Step Functions Map fan-out that "
+                "invokes the live eval harness when scheduled re-eval is wired"
+            ),
             result=sfn.Result.from_object(
                 {
                     "status": "placeholder",
-                    "message": "Scheduled eval stub — enable only for demos",
+                    "message": (
+                        "Scheduled eval stub — no Bedrock until the harness is "
+                        "wired; keep enable_reeval_schedule=false unless intentional"
+                    ),
                 }
             ),
         )
@@ -65,13 +78,24 @@ class EvalScheduleStack(cdk.Stack):
             "ReevalScheduleEnabled",
             value=str(enable_reeval_schedule).lower(),
         )
+        cdk.CfnOutput(
+            self,
+            "ManualEvalPreferred",
+            value=(
+                "python -m evals.harness [--live]; schedule stays off until "
+                "enable_reeval_schedule=true"
+            ),
+        )
 
         if enable_reeval_schedule:
             rule = events.Rule(
                 self,
                 "ReevalScheduleRule",
                 rule_name=f"{PROJECT_NAME}-reeval-schedule",
-                description="SupportRouter scheduled re-eval (ADR-008 — burns Bedrock tokens)",
+                description=(
+                    "SupportRouter scheduled re-eval (ADR-008 — opt-in only; "
+                    "burns Bedrock tokens once the stub targets a live harness)"
+                ),
                 schedule=events.Schedule.rate(cdk.Duration.days(7)),
                 enabled=True,
             )

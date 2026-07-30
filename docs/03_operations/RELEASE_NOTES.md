@@ -3,6 +3,22 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — EvalSchedule opt-in (#75)
+
+### Shipped
+
+- `SupportRouter-EvalSchedule` deployed with schedule **disabled** by default
+  (no EventBridge rule; stub Step Functions + 14-day log group only).
+- RUNBOOK: manual harness preferred; enable/disable via
+  `enable_reeval_schedule`; teardown names this stack; cost risk called out.
+
+### Cost note
+
+Zero Bedrock from this stack while the schedule is off. Enabling the weekly
+rule is intentional and can incur eval/judge tokens once the stub targets a
+live harness — measure before claiming. Prefer `python -m evals.harness [--live]`
+for on-demand runs.
+
 ## Unreleased — Observability dashboards (#71)
 
 ### Shipped
