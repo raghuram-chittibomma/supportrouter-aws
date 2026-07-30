@@ -146,22 +146,31 @@ def _retrieve_bedrock(
     return citations
 
 
-def retrieve(message: str, task_type: str, limit: int = 2) -> list[dict[str, Any]]:
+def retrieve(
+    message: str,
+    task_type: str,
+    limit: int = 2,
+    *,
+    provider: str | None = None,
+) -> list[dict[str, Any]]:
     """Retrieve citations using the configured provider.
 
     Local deterministic retrieval remains the default. Set
     ``SUPPORTROUTER_RETRIEVER=bedrock`` and ``SUPPORTROUTER_KB_ID`` to use the
-    managed Knowledge Base. A configured Bedrock failure is surfaced rather
-    than silently falling back to local results. ``task_type`` influences only
-    local keyword ranking; managed retrieval uses semantic similarity.
+    managed Knowledge Base, or pass ``provider='bedrock'`` for a single call.
+    A configured Bedrock failure is surfaced rather than silently falling back
+    to local results. ``task_type`` influences only local keyword ranking;
+    managed retrieval uses semantic similarity.
     """
-    provider = (
-        os.environ.get("SUPPORTROUTER_RETRIEVER", "local").strip().lower()
+    resolved = (
+        (provider or os.environ.get("SUPPORTROUTER_RETRIEVER", "local"))
+        .strip()
+        .lower()
         or "local"
     )
-    if provider == "local":
+    if resolved == "local":
         return _retrieve_local(message, task_type, limit)
-    if provider != _BEDROCK_RETRIEVER:
+    if resolved != _BEDROCK_RETRIEVER:
         raise ValueError(
             "SUPPORTROUTER_RETRIEVER must be 'local' or 'bedrock'"
         )

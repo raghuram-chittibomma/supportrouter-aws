@@ -10,8 +10,13 @@ from supportrouter.graph import run_agent
 from supportrouter.sessions import decide_hitl, list_sessions, save_session
 
 
-def handle_message(message: str, session_id: str | None = None) -> dict:
-    result = run_agent(message, session_id=session_id)
+def handle_message(
+    message: str,
+    session_id: str | None = None,
+    *,
+    runtime_mode: str | None = None,
+) -> dict:
+    result = run_agent(message, session_id=session_id, runtime_mode=runtime_mode)
     return save_session(result)
 
 
@@ -34,8 +39,18 @@ def main(argv: list[str] | None = None) -> int:
             default=None,
             help="Optional session id to continue an existing conversation",
         )
+        parser.add_argument(
+            "--runtime-mode",
+            choices=["local", "aws"],
+            default=None,
+            help="local (default) or aws Bedrock/tools/KB path",
+        )
         args = parser.parse_args(argv)
-        result = handle_message(" ".join(args.message), session_id=args.session_id)
+        result = handle_message(
+            " ".join(args.message),
+            session_id=args.session_id,
+            runtime_mode=args.runtime_mode,
+        )
         _print_json(result)
         return 0
 
@@ -47,7 +62,12 @@ def main(argv: list[str] | None = None) -> int:
     chat = sub.add_parser("chat", help="Run one customer support turn")
     chat.add_argument("message", nargs="+", help="Customer support message")
     chat.add_argument("--session-id", default=None)
-
+    chat.add_argument(
+        "--runtime-mode",
+        choices=["local", "aws"],
+        default=None,
+        help="local (default) or aws Bedrock/tools/KB path",
+    )
     sub.add_parser(
         "list-pending",
         help="List sessions awaiting refund approval or escalation review",
@@ -72,7 +92,11 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     if args.command == "chat":
-        result = handle_message(" ".join(args.message), session_id=args.session_id)
+        result = handle_message(
+            " ".join(args.message),
+            session_id=args.session_id,
+            runtime_mode=args.runtime_mode,
+        )
         _print_json(result)
         return 0
 

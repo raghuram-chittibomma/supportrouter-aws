@@ -72,6 +72,10 @@ class ToolsStack(cdk.Stack):
             write_table_arns=[refunds.table_arn],
         )
 
+        self.get_order_status_function = status_function
+        self.initiate_return_function = return_function
+        self.issue_refund_function = refund_function
+
         for name, value in (
             ("OrdersTableName", orders.table_name),
             ("ReturnsTableName", returns.table_name),

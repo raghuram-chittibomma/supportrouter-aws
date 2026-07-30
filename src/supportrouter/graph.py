@@ -1,13 +1,17 @@
-"""LangGraph runtime agent for SupportRouter (local stubs; no Bedrock yet)."""
+"""LangGraph runtime agent for SupportRouter (local default; AWS mode optional)."""
 
 from __future__ import annotations
 
+import json
+import os
 import time
 import uuid
 from typing import Any, Literal
 
 from langgraph.graph import END, START, StateGraph
 
+from supportrouter.bedrock_converse import converse_text
+from supportrouter.bedrock_models import estimate_cost_usd, resolve_inference_profile
 from supportrouter.classifier import classify
 from supportrouter.decision import hitl_decision, score_confidence
 from supportrouter.guardrails import (
@@ -29,7 +33,9 @@ from supportrouter.observability import (
 from supportrouter.prompt_cache import agent_cacheable_prefix, unavailable_cache_usage
 from supportrouter.retrieve import retrieve
 from supportrouter.router import route
+from supportrouter.runtime_mode import RuntimeMode, normalize_runtime_mode
 from supportrouter.state import AgentState
+from supportrouter.tools_aws import invoke_tool
 from supportrouter.tools_local import (
     extract_order_id,
     get_order_status,
@@ -115,10 +121,26 @@ def retrieve_node(state: AgentState) -> dict[str, Any]:
     if state.get("error"):
         return {}
     task_type = state.get("task_type") or "unknown"
-    citations = retrieve(state["message"], task_type)
+    mode = state.get("runtime_mode") or "local"
+    notes = _notes(state)
+    if mode == "aws" and os.environ.get("SUPPORTROUTER_KB_ID", "").strip():
+        citations = retrieve(
+            state["message"], task_type, provider="bedrock"
+        )
+        provider = "bedrock"
+        notes = notes + [f"retrieve:bedrock:{len(citations)}"]
+    else:
+        citations = retrieve(state["message"], task_type, provider="local")
+        provider = "local"
+        if mode == "aws":
+            provider = "local_fallback"
+            notes = notes + [f"retrieve:aws_fallback_local:{len(citations)}"]
+        else:
+            notes = notes + [f"retrieve:local:{len(citations)}"]
     return {
         "citations": citations,
-        "notes": _notes(state) + [f"retrieve:{len(citations)}"],
+        "retrieve_provider": provider,
+        "notes": notes,
     }
 
 
@@ -129,6 +151,18 @@ def tools_node(state: AgentState) -> dict[str, Any]:
     order_id = extract_order_id(state["message"])
     calls: list[dict[str, Any]] = []
     refund_amount: float | None = None
+    mode = state.get("runtime_mode") or "local"
+
+    def _call_tool(name: str, oid: str) -> dict[str, Any]:
+        if mode == "aws":
+            return invoke_tool(name, order_id=oid)
+        if name == "get_order_status":
+            return get_order_status(oid)
+        if name == "initiate_return":
+            return initiate_return(oid)
+        if name == "issue_refund":
+            return issue_refund(oid)
+        raise ValueError(f"Unknown tool {name}")
 
     if order_id is None:
         calls.append(
@@ -139,13 +173,13 @@ def tools_node(state: AgentState) -> dict[str, Any]:
             }
         )
     elif task_type == "order_status":
-        result = get_order_status(order_id)
+        result = _call_tool("get_order_status", order_id)
         calls.append({"name": "get_order_status", "args": {"order_id": order_id}, "result": result})
     elif task_type == "return_request":
-        result = initiate_return(order_id)
+        result = _call_tool("initiate_return", order_id)
         calls.append({"name": "initiate_return", "args": {"order_id": order_id}, "result": result})
     elif task_type == "refund_request":
-        result = issue_refund(order_id)
+        result = _call_tool("issue_refund", order_id)
         calls.append({"name": "issue_refund", "args": {"order_id": order_id}, "result": result})
         if result.get("ok"):
             refund_amount = float(result["amount_usd"])
@@ -161,13 +195,12 @@ def tools_node(state: AgentState) -> dict[str, Any]:
     return {
         "tool_calls": calls,
         "refund_amount_usd": refund_amount,
-        "notes": _notes(state) + [f"tools:{calls[0]['name'] if calls else 'none'}"],
+        "notes": _notes(state)
+        + [f"tools:{mode}:{calls[0]['name'] if calls else 'none'}"],
     }
 
 
-def draft_node(state: AgentState) -> dict[str, Any]:
-    if state.get("error"):
-        return {}
+def _draft_local_answer(state: AgentState) -> str:
     task_type = state.get("task_type") or "unknown"
     model_id = state.get("model_id") or "unknown"
     citations = state.get("citations") or []
@@ -203,11 +236,61 @@ def draft_node(state: AgentState) -> dict[str, Any]:
             "I understood your request but need more detail "
             "(include order ID VE-#### when asking about an order)."
         )
+    return (
+        f"{answer}\n\n_(Routed model: {model_id}; drafting is local stub — "
+        "no Bedrock call.)_"
+    )
 
-    answer = f"{answer}\n\n_(Routed model: {model_id}; drafting is local stub — no Bedrock call.)_"
+
+def draft_node(state: AgentState) -> dict[str, Any]:
+    if state.get("error"):
+        return {}
+    mode = state.get("runtime_mode") or "local"
+    if mode != "aws":
+        return {
+            "answer": _draft_local_answer(state),
+            "draft_usage": None,
+            "draft_cost_usd": None,
+            "actual_model_id": state.get("model_id"),
+            "notes": _notes(state) + ["draft:local"],
+        }
+
+    routed = state.get("model_id") or "amazon.nova-micro"
+    profile_id = resolve_inference_profile(routed)
+    user_payload = {
+        "customer_message": state.get("message"),
+        "task_type": state.get("task_type"),
+        "citations": state.get("citations") or [],
+        "tool_calls": state.get("tool_calls") or [],
+        "instructions": (
+            "Draft a concise VoltEdge Electronics customer support reply using "
+            "only the provided synthetic tool results and citations. Do not invent "
+            "orders, policies, or amounts."
+        ),
+    }
+    draft = converse_text(
+        model_id=profile_id,
+        system=(
+            "You are SupportRouter for the fictional retailer VoltEdge Electronics. "
+            "Use only supplied evidence."
+        ),
+        user=json.dumps(user_payload, indent=2),
+        max_tokens=400,
+        temperature=0.0,
+    )
+    text = draft["text"].strip()
+    if not text:
+        text = (
+            "I could not draft a Bedrock response for this turn. "
+            "Please try again or switch to Local mode."
+        )
+    usage = draft["usage"]
     return {
-        "answer": answer,
-        "notes": _notes(state) + ["draft:ok"],
+        "answer": text,
+        "draft_usage": usage,
+        "draft_cost_usd": estimate_cost_usd(profile_id, usage),
+        "actual_model_id": profile_id,
+        "notes": _notes(state) + [f"draft:aws:{profile_id}"],
     }
 
 
@@ -330,10 +413,12 @@ def run_agent(
     *,
     correlation_id: str | None = None,
     plane: str = PLANE_RUNTIME,
+    runtime_mode: str | None = None,
 ) -> dict[str, Any]:
     """Execute the SupportRouter graph and return a JSON-serializable result."""
     if plane not in {PLANE_RUNTIME, PLANE_EVAL}:
         raise ValueError("plane must be 'runtime' or 'eval'")
+    mode: RuntimeMode = normalize_runtime_mode(runtime_mode)
     app = get_app()
     resolved_session_id = session_id or str(uuid.uuid4())
     resolved_correlation_id = correlation_id or new_correlation_id()
@@ -350,6 +435,7 @@ def run_agent(
                 "session_id": resolved_session_id,
                 "correlation_id": resolved_correlation_id,
                 "plane": plane,
+                "runtime_mode": mode,
                 "message": message,
             }
         )
@@ -364,12 +450,18 @@ def run_agent(
         )
         raise
     agent_prefix = agent_cacheable_prefix()
+    draft_usage = final.get("draft_usage")
+    draft_cost = final.get("draft_cost_usd")
+    cost_measured = mode == "aws" and draft_cost is not None
     result = {
         "session_id": final.get("session_id") or resolved_session_id,
         "correlation_id": resolved_correlation_id,
         "plane": plane,
+        "runtime_mode": mode,
+        "retrieve_provider": final.get("retrieve_provider") or "skipped",
         "task_type": final.get("task_type"),
         "model_id": final.get("model_id"),
+        "actual_model_id": final.get("actual_model_id") or final.get("model_id"),
         "routing_table_version": final.get("routing_table_version"),
         "classifier_rationale": final.get("classifier_rationale"),
         "answer": final.get("answer"),
@@ -388,14 +480,18 @@ def run_agent(
         },
         "notes": final.get("notes") or [],
         "usage": {
-            "input_tokens": None,
-            "output_tokens": None,
-            "total_tokens": None,
+            "input_tokens": (draft_usage or {}).get("input_tokens"),
+            "output_tokens": (draft_usage or {}).get("output_tokens"),
+            "total_tokens": (draft_usage or {}).get("total_tokens"),
             **unavailable_cache_usage(),
         },
-        "cost_usd": None,
-        "cost_status": "not_measured",
-        "cost_note": "not measured (local stubs; no Bedrock invocation)",
+        "cost_usd": draft_cost if cost_measured else None,
+        "cost_status": "measured" if cost_measured else "not_measured",
+        "cost_note": (
+            "tokens × published on-demand rates (draft only)"
+            if cost_measured
+            else "not measured (local stubs or missing Bedrock usage)"
+        ),
         "prompt_cache": {
             "prefix_name": agent_prefix.name,
             "prefix_version": agent_prefix.version,

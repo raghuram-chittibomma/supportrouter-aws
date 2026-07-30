@@ -1,9 +1,9 @@
-"""HTTP API edge that fronts the SupportRouter chat Lambda (ADR-014 / ADR-017).
+"""HTTP API edge that fronts the SupportRouter chat Lambda (ADR-014 / ADR-017 / ADR-018).
 
 Dormancy-safe: HTTP API (not REST) with pay-per-request pricing, throttled
-default stage, a 14-day log group, and a least-privilege role. The chat Lambda
-still drafts with the local stub (no Bedrock). When Sessions and ApprovalRequests
-tables are present, the role may read/write only those tables for HITL (#16).
+default stage, a 14-day log group, and a least-privilege role. Default runtime
+mode is ``local`` (stub drafting). ``runtime_mode=aws`` uses Bedrock Converse,
+tool Lambda invokes, and KB retrieve when configured.
 """
 
 from __future__ import annotations
@@ -127,7 +127,17 @@ def chat_runtime_bundling() -> cdk.BundlingOptions:
 
 
 class ApiStack(cdk.Stack):
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        *,
+        knowledge_base_id: str | None = None,
+        get_order_status_function: lambda_.IFunction | None = None,
+        initiate_return_function: lambda_.IFunction | None = None,
+        issue_refund_function: lambda_.IFunction | None = None,
+        **kwargs,
+    ) -> None:
         super().__init__(scope, construct_id, **kwargs)
         cdk.Tags.of(self).add("Project", PROJECT_NAME)
 
@@ -166,6 +176,67 @@ class ApiStack(cdk.Stack):
                 resources=hitl_table_arns,
             )
         )
+        # AWS runtime mode: Bedrock Converse + KB retrieve (service-scoped ARNs).
+        bedrock_resources = [
+            "arn:aws:bedrock:*:*:inference-profile/*",
+            "arn:aws:bedrock:*:*:application-inference-profile/*",
+            "arn:aws:bedrock:*::foundation-model/*",
+        ]
+        if knowledge_base_id:
+            bedrock_resources.append(
+                f"arn:aws:bedrock:*:*:knowledge-base/{knowledge_base_id}"
+            )
+        else:
+            bedrock_resources.append("arn:aws:bedrock:*:*:knowledge-base/*")
+        role.add_to_policy(
+            iam.PolicyStatement(
+                sid="BedrockConverseAndRetrieve",
+                actions=[
+                    "bedrock:Converse",
+                    "bedrock:InvokeModel",
+                    "bedrock:Retrieve",
+                ],
+                resources=bedrock_resources,
+            )
+        )
+        tool_fns = [
+            fn
+            for fn in (
+                get_order_status_function,
+                initiate_return_function,
+                issue_refund_function,
+            )
+            if fn is not None
+        ]
+        if tool_fns:
+            role.add_to_policy(
+                iam.PolicyStatement(
+                    sid="InvokeToolLambdas",
+                    actions=["lambda:InvokeFunction"],
+                    resources=[fn.function_arn for fn in tool_fns],
+                )
+            )
+
+        environment = {
+            "PYTHONPATH": "/var/task/src:/var/task",
+            "SESSIONS_TABLE_NAME": sessions.table_name,
+            "APPROVALS_TABLE_NAME": approvals.table_name,
+            "SUPPORTROUTER_RUNTIME_MODE": "local",
+        }
+        if knowledge_base_id:
+            environment["SUPPORTROUTER_KB_ID"] = knowledge_base_id
+        if get_order_status_function is not None:
+            environment["GET_ORDER_STATUS_FUNCTION_NAME"] = (
+                get_order_status_function.function_name
+            )
+        if initiate_return_function is not None:
+            environment["INITIATE_RETURN_FUNCTION_NAME"] = (
+                initiate_return_function.function_name
+            )
+        if issue_refund_function is not None:
+            environment["ISSUE_REFUND_FUNCTION_NAME"] = (
+                issue_refund_function.function_name
+            )
 
         chat_function = lambda_.Function(
             self,
@@ -195,13 +266,9 @@ class ApiStack(cdk.Stack):
             ),
             handler="supportrouter.api.handler",
             role=role,
-            environment={
-                "PYTHONPATH": "/var/task/src:/var/task",
-                "SESSIONS_TABLE_NAME": sessions.table_name,
-                "APPROVALS_TABLE_NAME": approvals.table_name,
-            },
-            timeout=cdk.Duration.seconds(30),
-            memory_size=256,
+            environment=environment,
+            timeout=cdk.Duration.seconds(60),
+            memory_size=512,
             log_group=log_group,
         )
 

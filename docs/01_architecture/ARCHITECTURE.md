@@ -43,6 +43,8 @@ EventBridge (OPTIONAL schedule; default OFF) or manual → Step Functions Map
 The local CLI harness (`python -m evals.harness`) is the v0.1 path. Default
 runs stay local-stub; `--live` drafts via Bedrock Converse and judges with
 Claude Haiku 4.5 ([ADR-016](DECISIONS/ADR-016-live-bedrock-eval-adapters.md)).
+Runtime chat supports an explicit `runtime_mode` of `local` (default) or `aws`
+([ADR-018](DECISIONS/ADR-018-runtime-mode-switch.md)).
 
 CDK context `enable_reeval_schedule` defaults to `false` — **no EventBridge rule is created** when false ([ADR-008](DECISIONS/ADR-008-dormancy-safe-cost-profile.md)).
 
