@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted — citation evidence means **relevant** citations after the retrieval
+gate in [ADR-020](ADR-020-retrieval-relevance-gate.md).
 
 ## Context
 

@@ -146,12 +146,15 @@ def test_safe_run_records_both_guardrail_paths_as_allowed():
 
 def test_product_purchase_question_is_not_misclassified_as_financial_advice():
     result = run_agent(
-        "Should I buy this VoltEdge charger to work with my device?"
+        "Is the PowerDock Duo compatible with USB-C laptops that support DisplayPort Alt Mode?"
     )
 
     assert result["guardrail"]["input"]["action"] == "allowed"
     assert result["task_type"] == "product_question"
     assert result["status"] == "resolved"
+    assert any(
+        c.get("doc_id") == "faq-powerdock-001" for c in result.get("citations") or []
+    )
 
 
 def test_output_guardrail_replaces_blocked_content_without_echoing_it():

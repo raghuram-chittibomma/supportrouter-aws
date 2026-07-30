@@ -15,6 +15,11 @@ _MANAGED_DOC_ID = re.compile(r"\bdoc_id:\s*([a-zA-Z0-9_-]+)")
 _MANAGED_TITLE = re.compile(r"\btitle:\s*(.+?)\s+---(?:\s|$)")
 _BEDROCK_RETRIEVER = "bedrock"
 
+# Deterministic relevance gates (#74 / ADR-020). Local keyword scores are
+# integer token overlaps; Bedrock scores are managed similarity floats.
+LOCAL_MIN_RELEVANCE_SCORE = 4
+BEDROCK_MIN_RELEVANCE_SCORE = 0.4
+
 
 def _parse_doc(path: Path) -> dict[str, Any] | None:
     raw = path.read_text(encoding="utf-8")
@@ -146,6 +151,34 @@ def _retrieve_bedrock(
     return citations
 
 
+def filter_relevant_citations(
+    citations: list[dict[str, Any]],
+    *,
+    provider: str,
+) -> list[dict[str, Any]]:
+    """Drop citations below the provider-specific relevance threshold.
+
+    Empty results after filtering are treated as no evidence by confidence/
+    HITL (ADR-009 presence cap), which escalates FAQ/product turns.
+    """
+    resolved = (provider or "local").strip().lower() or "local"
+    if resolved in {"local", "local_fallback"}:
+        minimum = float(LOCAL_MIN_RELEVANCE_SCORE)
+    elif resolved == _BEDROCK_RETRIEVER:
+        minimum = float(BEDROCK_MIN_RELEVANCE_SCORE)
+    else:
+        minimum = float(LOCAL_MIN_RELEVANCE_SCORE)
+    kept: list[dict[str, Any]] = []
+    for citation in citations or []:
+        try:
+            score = float(citation.get("score") or 0.0)
+        except (TypeError, ValueError):
+            score = 0.0
+        if score >= minimum:
+            kept.append(citation)
+    return kept
+
+
 def retrieve(
     message: str,
     task_type: str,
@@ -160,7 +193,8 @@ def retrieve(
     managed Knowledge Base, or pass ``provider='bedrock'`` for a single call.
     A configured Bedrock failure is surfaced rather than silently falling back
     to local results. ``task_type`` influences only local keyword ranking;
-    managed retrieval uses semantic similarity.
+    managed retrieval uses semantic similarity. Results are filtered by a
+    deterministic relevance threshold (ADR-020).
     """
     resolved = (
         (provider or os.environ.get("SUPPORTROUTER_RETRIEVER", "local"))
@@ -169,7 +203,8 @@ def retrieve(
         or "local"
     )
     if resolved == "local":
-        return _retrieve_local(message, task_type, limit)
+        citations = _retrieve_local(message, task_type, limit)
+        return filter_relevant_citations(citations, provider="local")
     if resolved != _BEDROCK_RETRIEVER:
         raise ValueError(
             "SUPPORTROUTER_RETRIEVER must be 'local' or 'bedrock'"
@@ -181,8 +216,9 @@ def retrieve(
             "SUPPORTROUTER_KB_ID is required when "
             "SUPPORTROUTER_RETRIEVER=bedrock"
         )
-    return _retrieve_bedrock(
+    citations = _retrieve_bedrock(
         message,
         knowledge_base_id=knowledge_base_id,
         limit=limit,
     )
+    return filter_relevant_citations(citations, provider=_BEDROCK_RETRIEVER)
