@@ -329,7 +329,15 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
             "MemorySize": 256,
             "Timeout": 30,
             "Environment": {
-                "Variables": {"PYTHONPATH": "/var/task/src:/var/task"},
+                "Variables": {
+                    "PYTHONPATH": "/var/task/src:/var/task",
+                    "SESSIONS_TABLE_NAME": {
+                        "Ref": Match.any_value(),
+                    },
+                    "APPROVALS_TABLE_NAME": {
+                        "Ref": Match.any_value(),
+                    },
+                },
             },
         },
     )
@@ -357,7 +365,7 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
         },
     )
 
-    # Role grants only log writes: no data-plane or wildcard permissions.
+    # Role grants log writes plus scoped HITL DynamoDB access (no Bedrock/S3/*).
     roles = [
         resource["Properties"]
         for resource in raw["Resources"].values()
@@ -377,17 +385,38 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
     for statement in statements:
         actions = statement["Action"]
         all_actions.update(actions if isinstance(actions, list) else [actions])
-    assert all_actions == {"logs:CreateLogStream", "logs:PutLogEvents"}
+    assert all_actions == {
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+    }
 
     policy_serialized = json.dumps(policies[0])
     for forbidden in (
-        "dynamodb:",
         "bedrock:",
         "s3:",
         '"Action": "*"',
         '"Resource": "*"',
     ):
         assert forbidden not in policy_serialized
+
+    # Sessions + ApprovalRequests tables (on-demand, destroyable).
+    template.resource_count_is("AWS::DynamoDB::Table", 2)
+    template.has_resource_properties(
+        "AWS::DynamoDB::Table",
+        {
+            "BillingMode": "PAY_PER_REQUEST",
+            "KeySchema": [{"AttributeName": "session_id", "KeyType": "HASH"}],
+        },
+    )
+    template.has_resource_properties(
+        "AWS::DynamoDB::Table",
+        {
+            "BillingMode": "PAY_PER_REQUEST",
+            "KeySchema": [{"AttributeName": "approval_id", "KeyType": "HASH"}],
+        },
+    )
 
 
 def test_chat_runtime_asset_contains_code_data_and_pinned_dependencies(

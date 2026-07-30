@@ -1,4 +1,8 @@
-"""In-memory session and approval repositories for the local demo."""
+"""Session and approval repositories for local demo and AWS HITL (#16).
+
+Default backend is process-local memory. When ``SESSIONS_TABLE_NAME`` and
+``APPROVALS_TABLE_NAME`` are set, operations use DynamoDB (ADR-010).
+"""
 
 from __future__ import annotations
 
@@ -9,6 +13,7 @@ from typing import Any
 
 from supportrouter.observability import emit_hitl_decision
 from supportrouter.schemas import ApprovalRequest
+from supportrouter.sessions_dynamo import dynamo_enabled
 
 _LOCK = Lock()
 _SESSIONS: dict[str, dict[str, Any]] = {}
@@ -16,7 +21,12 @@ _APPROVALS: dict[str, ApprovalRequest] = {}
 
 
 def save_session(result: dict[str, Any]) -> dict[str, Any]:
-    """Persist a run result and create a local refund approval when required."""
+    """Persist a run result and create a refund approval when required."""
+    if dynamo_enabled():
+        from supportrouter import sessions_dynamo
+
+        return sessions_dynamo.save_session(result)
+
     session_id = result.get("session_id")
     if not session_id:
         raise ValueError("session_id required")
@@ -46,12 +56,20 @@ def save_session(result: dict[str, Any]) -> dict[str, Any]:
 
 
 def get_session(session_id: str) -> dict[str, Any] | None:
+    if dynamo_enabled():
+        from supportrouter import sessions_dynamo
+
+        return sessions_dynamo.get_session(session_id)
     with _LOCK:
         record = _SESSIONS.get(session_id)
         return deepcopy(record) if record else None
 
 
 def list_sessions(*, statuses: set[str] | None = None) -> list[dict[str, Any]]:
+    if dynamo_enabled():
+        from supportrouter import sessions_dynamo
+
+        return sessions_dynamo.list_sessions(statuses=statuses)
     with _LOCK:
         values = deepcopy(list(_SESSIONS.values()))
     if statuses is not None:
@@ -61,6 +79,10 @@ def list_sessions(*, statuses: set[str] | None = None) -> list[dict[str, Any]]:
 
 
 def get_approval_request(approval_id: str) -> ApprovalRequest | None:
+    if dynamo_enabled():
+        from supportrouter import sessions_dynamo
+
+        return sessions_dynamo.get_approval_request(approval_id)
     with _LOCK:
         record = _APPROVALS.get(approval_id)
         return deepcopy(record) if record else None
@@ -69,6 +91,10 @@ def get_approval_request(approval_id: str) -> ApprovalRequest | None:
 def list_approval_requests(
     *, statuses: set[str] | None = None
 ) -> list[ApprovalRequest]:
+    if dynamo_enabled():
+        from supportrouter import sessions_dynamo
+
+        return sessions_dynamo.list_approval_requests(statuses=statuses)
     with _LOCK:
         values = deepcopy(list(_APPROVALS.values()))
     if statuses is not None:
@@ -85,6 +111,13 @@ def decide_hitl(
     decided_by: str = "local-supervisor",
 ) -> dict[str, Any]:
     """Transition a pending refund approval; retries are idempotent."""
+    if dynamo_enabled():
+        from supportrouter import sessions_dynamo
+
+        return sessions_dynamo.decide_hitl(
+            session_id, decision, note, decided_by=decided_by
+        )
+
     decision_norm = (decision or "").strip().lower()
     if decision_norm not in {"approve", "reject"}:
         raise ValueError("decision must be 'approve' or 'reject'")
@@ -160,6 +193,11 @@ def decide_hitl(
 
 
 def clear_sessions() -> None:
+    if dynamo_enabled():
+        from supportrouter import sessions_dynamo
+
+        sessions_dynamo.clear_sessions()
+        return
     with _LOCK:
         _SESSIONS.clear()
         _APPROVALS.clear()
