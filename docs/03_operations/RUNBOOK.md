@@ -237,9 +237,10 @@ After destroy, confirm in `us-east-1` (or deploy region):
   `supportrouter-refundrequests` tables remain
 - [ ] No `supportrouter-get-order-status`, `supportrouter-initiate-return`, or
   `supportrouter-issue-refund` Lambdas remain
+- [ ] No `SupportRouter-EvalSchedule` stack (or confirm `ReevalScheduleEnabled=false` and no `supportrouter-reeval-schedule` EventBridge rule)
+- [ ] EventBridge: no SupportRouter re-eval rules left behind
 - [ ] No SupportRouter log groups with **never-expire** retention
 - [ ] No SupportRouter VPC or NAT Gateways (we must not create any)
-- [ ] EventBridge: no SupportRouter re-eval rules left behind
 
 If an orphaned AOSS collection is found and confirmed unused:
 
@@ -273,20 +274,55 @@ Knowledge Base region. Local retrieval remains the default when these variables
 are absent. Managed retrieval is billable and does not silently fall back to
 local documents on an AWS error.
 
-## Eval schedule toggle (default OFF)
+## Eval schedule (`SupportRouter-EvalSchedule`) — default OFF
 
-CDK context `enable_reeval_schedule` defaults to `false` (no EventBridge rule created).
+**Intent:** keep the stack/scaffolding deployed if you want, but **do not** run
+automatic Bedrock re-evals until you choose to. Weekly EventBridge is opt-in
+only (ADR-008).
 
-```bash
-# Enable scheduled re-evals (burns Bedrock tokens on each run)
+| Mode | How | Bedrock spend |
+|------|-----|---------------|
+| **Manual (preferred)** | `python -m evals.harness` / `--live` when you want a run | Only that run |
+| **Schedule OFF (default)** | Deploy without enabling the flag — **no** EventBridge rule | None from schedule |
+| **Schedule ON (explicit)** | Redeploy with `-c enable_reeval_schedule=true` | Weekly stub/target until disabled |
+
+Deploy scaffolding with schedule disabled (us-east-1; activate `.venv` first):
+
+```powershell
+.\.venv\Scripts\Activate.ps1
 cd infra
-cdk deploy --all -c enable_reeval_schedule=true
-
-# Disable again (default) — rule is not created
-cdk deploy --all -c enable_reeval_schedule=false
+npx cdk deploy SupportRouter-EvalSchedule
+# ReevalScheduleEnabled output must be "false"; no rule named supportrouter-reeval-schedule
 ```
 
-On-demand eval (preferred while dormant):
+Enable a standing weekly rule **only when you want it** (cost risk: each fire
+can invoke Bedrock candidates + judge once the stub is wired to the live
+harness — measure before claiming savings or quality):
+
+```powershell
+cd infra
+npx cdk deploy SupportRouter-EvalSchedule -c enable_reeval_schedule=true
+```
+
+Turn the schedule back off (removes the EventBridge rule; does not invent a
+disabled rule):
+
+```powershell
+npx cdk deploy SupportRouter-EvalSchedule -c enable_reeval_schedule=false
+```
+
+Optional one-shot of the **placeholder** Step Functions machine (no Bedrock
+today — Pass stub only):
+
+```powershell
+$arn = aws cloudformation describe-stacks `
+  --stack-name SupportRouter-EvalSchedule `
+  --query "Stacks[0].Outputs[?OutputKey=='EvalStateMachineArn'].OutputValue" `
+  --output text
+aws stepfunctions start-execution --state-machine-arn $arn
+```
+
+On-demand eval (real scorecards; preferred while dormant):
 
 ```bash
 # Local-stub (no Bedrock spend)

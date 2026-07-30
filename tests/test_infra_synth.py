@@ -140,6 +140,9 @@ def test_eval_schedule_rule_absent_when_disabled(env: cdk.Environment) -> None:
     template = Template.from_stack(stack)
     template.resource_count_is("AWS::Events::Rule", 0)
     template.resource_count_is("AWS::StepFunctions::StateMachine", 1)
+    outputs = template.find_outputs("*")
+    assert outputs["ReevalScheduleEnabled"]["Value"] == "false"
+    assert "ManualEvalPreferred" in outputs
 
 
 def test_eval_schedule_rule_present_when_enabled(env: cdk.Environment) -> None:
@@ -151,6 +154,8 @@ def test_eval_schedule_rule_present_when_enabled(env: cdk.Environment) -> None:
         "AWS::Events::Rule",
         {"State": "ENABLED"},
     )
+    outputs = template.find_outputs("*")
+    assert outputs["ReevalScheduleEnabled"]["Value"] == "true"
 
 
 def test_observability_caps(env: cdk.Environment) -> None:
