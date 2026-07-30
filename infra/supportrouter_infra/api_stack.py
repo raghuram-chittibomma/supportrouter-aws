@@ -27,7 +27,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-from supportrouter_infra.constants import PROJECT_NAME
+from supportrouter_infra.constants import CHAT_FUNCTION_NAME, PROJECT_NAME
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_REQUIREMENTS = PROJECT_ROOT / "infra" / "chat_runtime_requirements.txt"
@@ -147,7 +147,7 @@ class ApiStack(cdk.Stack):
         sessions = self._table("Sessions", "session_id")
         approvals = self._table("ApprovalRequests", "approval_id")
 
-        function_name = f"{PROJECT_NAME}-chat"
+        function_name = CHAT_FUNCTION_NAME
         log_group = logs.LogGroup(
             self,
             "ChatLogs",

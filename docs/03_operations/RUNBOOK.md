@@ -101,11 +101,60 @@ Each local agent run emits structured JSON events with:
   draft/output guardrail/confidence/HITL
 - step-local status (`ok`, `skipped`, `error`) separate from conversation outcome
 - explicit `usage` and `cost_usd` fields that remain `null` / `not_measured`
+  until Bedrock usage is present
 
-Default sink is process-local memory for tests. JSON-line logging is available
-for CloudWatch Logs Insights once the agent Lambda is deployed. The CDK
-Observability stack already creates the three dormancy-safe dashboards as stubs
-(`supportrouter-runtime`, `supportrouter-cost-signals`, `supportrouter-evals`).
+Default sink is process-local memory for tests/CLI/UI. Inside the chat Lambda,
+`LoggingTraceSink` is activated automatically so one JSON object per line lands
+in `/aws/lambda/supportrouter-chat` (Logs Insights).
+
+### CloudWatch Observability stack (#71 / ADR-008 / ADR-011)
+
+Deploy (us-east-1; activate `.venv` first so CDK's `python app.py` resolves `aws_cdk`):
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+cd infra
+npx cdk deploy SupportRouter-Observability
+```
+
+Redeploy the chat Lambda after observability code changes so `LoggingTraceSink` is active:
+
+```powershell
+npx cdk deploy SupportRouter-Api
+```
+
+Open dashboards (console → CloudWatch → Dashboards):
+
+| Dashboard | Purpose |
+|-----------|---------|
+| `supportrouter-runtime` | Chat + tool Lambda invocations, errors, duration, throttles |
+| `supportrouter-cost-signals` | Bedrock invocation counts / latency / errors (not dollar spend) |
+| `supportrouter-evals` | Eval-plane notes; schedule stays OFF by default |
+
+Log groups:
+
+| Log group | Writers today |
+|-----------|----------------|
+| `/aws/lambda/supportrouter-chat` | Chat Lambda structured traces (`LoggingTraceSink`) |
+| `/supportrouter/supportrouter/agent` | Reserved — no writer yet |
+| `/supportrouter/supportrouter/evals` | Reserved — harness/CLI does not ship here yet |
+
+Alarms (no SNS actions): `supportrouter-chat-errors`, `supportrouter-chat-throttles`.
+
+Tear down Observability only:
+
+```powershell
+cd infra
+npx cdk destroy SupportRouter-Observability
+```
+
+Full dormancy teardown (all stacks): `.\scripts\teardown.ps1` — confirm no
+never-expire log groups remain afterward.
+
+**Cost note:** Three dashboards + 14-day log retention are dormancy-safe idle
+cost; spend scales with log ingestion and Lambda/Bedrock traffic. No Bedrock
+calls from this stack alone. Monthly budget alert remains on
+`SupportRouter-CostGuardrails` ($20, tag `Project=supportrouter`).
 
 ### Guardrail behavior
 

@@ -86,6 +86,20 @@ def set_trace_sink(sink: TraceSink | None) -> TraceSink:
     return _ACTIVE_SINK
 
 
+def configure_lambda_trace_sink() -> bool:
+    """Activate ``LoggingTraceSink`` when running inside AWS Lambda.
+
+    Local CLI/UI/tests keep the in-memory sink. Lambda JSON lines land in the
+    function's CloudWatch log group (``/aws/lambda/supportrouter-chat``).
+    """
+    import os
+
+    if not os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        return False
+    set_trace_sink(LoggingTraceSink())
+    return True
+
+
 def clear_traces() -> None:
     sink = _ACTIVE_SINK
     clear = getattr(sink, "clear", None)

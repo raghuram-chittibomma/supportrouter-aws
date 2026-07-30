@@ -3,6 +3,22 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — Observability dashboards (#71)
+
+### Shipped
+
+- `SupportRouter-Observability`: ≤3 CloudWatch dashboards with Lambda/Bedrock
+  metric widgets, 14-day log groups, chat error/throttle alarms (no SNS).
+- Chat Lambda activates `LoggingTraceSink` so structured traces land in
+  `/aws/lambda/supportrouter-chat`. Dedicated agent/evals log groups remain
+  reserved (documented gap).
+
+### Cost note
+
+Dashboards + 14-day retention are dormancy-safe idle cost; ingestion scales with
+traffic. No Bedrock spend from this stack alone. Dollar budget remains
+`SupportRouter-CostGuardrails` ($20/mo).
+
 ## Unreleased — Prompt caching measurement (#72)
 
 ### Measured metrics

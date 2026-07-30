@@ -13,11 +13,18 @@ import logging
 from typing import Any
 
 from supportrouter.graph import run_agent
-from supportrouter.observability import PLANE_RUNTIME, new_correlation_id
+from supportrouter.observability import (
+    PLANE_RUNTIME,
+    configure_lambda_trace_sink,
+    new_correlation_id,
+)
 from supportrouter.runtime_mode import normalize_runtime_mode
 from supportrouter.sessions import save_session
 
 logger = logging.getLogger(__name__)
+
+# Structured agent traces → CloudWatch when running inside Lambda (ADR-011 / #71).
+configure_lambda_trace_sink()
 
 MAX_MESSAGE_CHARS = 4000
 MAX_SESSION_ID_CHARS = 200
