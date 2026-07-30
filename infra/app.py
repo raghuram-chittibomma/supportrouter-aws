@@ -32,13 +32,15 @@ env = cdk.Environment(
 
 CostGuardrailsStack(app, "SupportRouter-CostGuardrails", env=env)
 kb_stack = KnowledgeBaseStack(app, "SupportRouter-KnowledgeBase", env=env)
-GuardrailsStack(app, "SupportRouter-Guardrails", env=env)
+guardrails_stack = GuardrailsStack(app, "SupportRouter-Guardrails", env=env)
 tools_stack = ToolsStack(app, "SupportRouter-Tools", env=env)
 ApiStack(
     app,
     "SupportRouter-Api",
     env=env,
     knowledge_base_id=kb_stack.knowledge_base_id,
+    guardrail_id=guardrails_stack.guardrail_id,
+    guardrail_version=guardrails_stack.guardrail_version,
     get_order_status_function=tools_stack.get_order_status_function,
     initiate_return_function=tools_stack.initiate_return_function,
     issue_refund_function=tools_stack.issue_refund_function,

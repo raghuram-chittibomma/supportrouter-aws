@@ -1,9 +1,10 @@
-"""HTTP API edge that fronts the SupportRouter chat Lambda (ADR-014 / ADR-017 / ADR-018).
+"""HTTP API edge that fronts the SupportRouter chat Lambda (ADR-014 / ADR-017 / ADR-018 / ADR-019).
 
 Dormancy-safe: HTTP API (not REST) with pay-per-request pricing, throttled
 default stage, a 14-day log group, and a least-privilege role. Default runtime
-mode is ``local`` (stub drafting). ``runtime_mode=aws`` uses Bedrock Converse,
-tool Lambda invokes, and KB retrieve when configured.
+mode is ``local`` (stub drafting + local guardrails). ``runtime_mode=aws`` uses
+Bedrock Converse, ApplyGuardrail, tool Lambda invokes, and KB retrieve when
+configured.
 """
 
 from __future__ import annotations
@@ -133,6 +134,8 @@ class ApiStack(cdk.Stack):
         construct_id: str,
         *,
         knowledge_base_id: str | None = None,
+        guardrail_id: str | None = None,
+        guardrail_version: str | None = None,
         get_order_status_function: lambda_.IFunction | None = None,
         initiate_return_function: lambda_.IFunction | None = None,
         issue_refund_function: lambda_.IFunction | None = None,
@@ -199,6 +202,19 @@ class ApiStack(cdk.Stack):
                 resources=bedrock_resources,
             )
         )
+        if guardrail_id:
+            role.add_to_policy(
+                iam.PolicyStatement(
+                    sid="BedrockApplyGuardrail",
+                    actions=["bedrock:ApplyGuardrail"],
+                    resources=[
+                        f"arn:aws:bedrock:{cdk.Stack.of(self).region}:"
+                        f"{cdk.Stack.of(self).account}:guardrail/{guardrail_id}",
+                        f"arn:aws:bedrock:{cdk.Stack.of(self).region}:"
+                        f"{cdk.Stack.of(self).account}:guardrail/{guardrail_id}/*",
+                    ],
+                )
+            )
         tool_fns = [
             fn
             for fn in (
@@ -225,6 +241,10 @@ class ApiStack(cdk.Stack):
         }
         if knowledge_base_id:
             environment["SUPPORTROUTER_KB_ID"] = knowledge_base_id
+        if guardrail_id:
+            environment["SUPPORTROUTER_GUARDRAIL_ID"] = guardrail_id
+        if guardrail_version:
+            environment["SUPPORTROUTER_GUARDRAIL_VERSION"] = guardrail_version
         if get_order_status_function is not None:
             environment["GET_ORDER_STATUS_FUNCTION_NAME"] = (
                 get_order_status_function.function_name

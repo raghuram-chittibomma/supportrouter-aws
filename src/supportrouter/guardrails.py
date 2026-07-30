@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import asdict, dataclass
-from typing import Literal
+from typing import Any, Literal
 
 LOCAL_GUARDRAIL_IDENTIFIER = "supportrouter-local-guardrail"
 LOCAL_GUARDRAIL_VERSION = "local-v0.2"
@@ -108,6 +108,22 @@ def assess_text(text: str, *, stage: GuardrailStage) -> GuardrailAssessment:
         action="blocked" if categories else "allowed",
         categories=tuple(categories),
     )
+
+
+def assess(
+    text: str,
+    *,
+    stage: GuardrailStage,
+    runtime_mode: str = "local",
+    client: Any | None = None,
+) -> GuardrailAssessment:
+    """Assess text with local policy or Bedrock ApplyGuardrail (aws mode)."""
+    mode = (runtime_mode or "local").strip().lower()
+    if mode != "aws":
+        return assess_text(text, stage=stage)
+    from supportrouter.bedrock_guardrails import apply_guardrail
+
+    return apply_guardrail(text, stage=stage, client=client)
 
 
 def skipped_assessment(*, stage: GuardrailStage) -> GuardrailAssessment:

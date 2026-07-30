@@ -11,6 +11,21 @@ from supportrouter.runtime_mode import normalize_runtime_mode
 from supportrouter.tools_aws import invoke_tool
 
 
+def _stub_bedrock_guardrail_allow(monkeypatch) -> None:
+    """AWS mode requires guardrail IDs; tests mock ApplyGuardrail as allow."""
+    monkeypatch.setenv("SUPPORTROUTER_GUARDRAIL_ID", "gr-test")
+    monkeypatch.setenv("SUPPORTROUTER_GUARDRAIL_VERSION", "1")
+
+    class FakeGuardrailClient:
+        def apply_guardrail(self, **kwargs):
+            return {"action": "NONE", "assessments": []}
+
+    monkeypatch.setattr(
+        "supportrouter.bedrock_guardrails._client",
+        lambda client=None: FakeGuardrailClient(),
+    )
+
+
 def test_normalize_runtime_mode_defaults_local(monkeypatch):
     monkeypatch.delenv("SUPPORTROUTER_RUNTIME_MODE", raising=False)
     assert normalize_runtime_mode(None) == "local"
@@ -29,6 +44,7 @@ def test_local_mode_keeps_stub_draft_and_unmeasured_cost():
 
 
 def test_aws_mode_uses_converse_and_lambda_tools(monkeypatch):
+    _stub_bedrock_guardrail_allow(monkeypatch)
     class FakeLambda:
         def invoke(self, **kwargs):
             payload = json.loads(kwargs["Payload"].decode("utf-8"))
@@ -82,6 +98,7 @@ def test_aws_mode_uses_converse_and_lambda_tools(monkeypatch):
 
 
 def test_aws_faq_reports_local_retrieve_fallback(monkeypatch):
+    _stub_bedrock_guardrail_allow(monkeypatch)
     monkeypatch.delenv("SUPPORTROUTER_KB_ID", raising=False)
     monkeypatch.setattr(
         "supportrouter.graph.converse_text",

@@ -18,7 +18,7 @@ from supportrouter.guardrails import (
     GUARDRAIL_REDACTED_MESSAGE,
     LOCAL_GUARDRAIL_IDENTIFIER,
     LOCAL_GUARDRAIL_VERSION,
-    assess_text,
+    assess,
     blocked_message,
     skipped_assessment,
 )
@@ -80,7 +80,12 @@ def validate_node(state: AgentState) -> dict[str, Any]:
 def input_guardrail_node(state: AgentState) -> dict[str, Any]:
     if state.get("error"):
         return {"guardrail_input": skipped_assessment(stage="input").as_dict()}
-    assessment = assess_text(state.get("message") or "", stage="input")
+    mode = state.get("runtime_mode") or "local"
+    assessment = assess(
+        state.get("message") or "",
+        stage="input",
+        runtime_mode=mode,
+    )
     result: dict[str, Any] = {
         "guardrail_input": assessment.as_dict(),
         "notes": _notes(state) + [f"guardrail_input:{assessment.action}"],
@@ -309,7 +314,12 @@ def draft_node(state: AgentState) -> dict[str, Any]:
 def output_guardrail_node(state: AgentState) -> dict[str, Any]:
     if state.get("error"):
         return {"guardrail_output": skipped_assessment(stage="output").as_dict()}
-    assessment = assess_text(state.get("answer") or "", stage="output")
+    mode = state.get("runtime_mode") or "local"
+    assessment = assess(
+        state.get("answer") or "",
+        stage="output",
+        runtime_mode=mode,
+    )
     result: dict[str, Any] = {
         "guardrail_output": assessment.as_dict(),
         "notes": _notes(state) + [f"guardrail_output:{assessment.action}"],
@@ -465,6 +475,23 @@ def run_agent(
     draft_usage = final.get("draft_usage")
     draft_cost = final.get("draft_cost_usd")
     cost_measured = mode == "aws" and draft_cost is not None
+    guardrail_input = final.get("guardrail_input") or {}
+    guardrail_output = final.get("guardrail_output") or {}
+    guardrail_provider = (
+        guardrail_input.get("provider")
+        or guardrail_output.get("provider")
+        or "local_deterministic"
+    )
+    guardrail_identifier = (
+        guardrail_input.get("guardrail_identifier")
+        or guardrail_output.get("guardrail_identifier")
+        or LOCAL_GUARDRAIL_IDENTIFIER
+    )
+    guardrail_version = (
+        guardrail_input.get("guardrail_version")
+        or guardrail_output.get("guardrail_version")
+        or LOCAL_GUARDRAIL_VERSION
+    )
     result = {
         "session_id": final.get("session_id") or resolved_session_id,
         "correlation_id": resolved_correlation_id,
@@ -484,11 +511,11 @@ def run_agent(
         "hitl_reason": final.get("hitl_reason"),
         "refund_amount_usd": final.get("refund_amount_usd"),
         "guardrail": {
-            "identifier": LOCAL_GUARDRAIL_IDENTIFIER,
-            "version": LOCAL_GUARDRAIL_VERSION,
-            "provider": "local_deterministic",
-            "input": final.get("guardrail_input"),
-            "output": final.get("guardrail_output"),
+            "identifier": guardrail_identifier,
+            "version": guardrail_version,
+            "provider": guardrail_provider,
+            "input": guardrail_input or None,
+            "output": guardrail_output or None,
         },
         "notes": final.get("notes") or [],
         "usage": {
@@ -500,7 +527,7 @@ def run_agent(
         "cost_usd": draft_cost if cost_measured else None,
         "cost_status": "measured" if cost_measured else "not_measured",
         "cost_note": (
-            "tokens × published on-demand rates (draft only)"
+            "tokens × published on-demand rates (draft only; Guardrails API not measured)"
             if cost_measured
             else "not measured (local stubs or missing Bedrock usage)"
         ),

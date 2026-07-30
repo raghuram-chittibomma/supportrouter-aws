@@ -84,6 +84,17 @@ def test_local_refund_draft_stays_honest():
 
 
 def test_aws_draft_honesty_rewrite_when_model_overclaims(monkeypatch):
+    monkeypatch.setenv("SUPPORTROUTER_GUARDRAIL_ID", "gr-test")
+    monkeypatch.setenv("SUPPORTROUTER_GUARDRAIL_VERSION", "1")
+
+    class FakeGuardrailClient:
+        def apply_guardrail(self, **kwargs):
+            return {"action": "NONE", "assessments": []}
+
+    monkeypatch.setattr(
+        "supportrouter.bedrock_guardrails._client",
+        lambda client=None: FakeGuardrailClient(),
+    )
     class FakeLambda:
         def invoke(self, **kwargs):
             body = json.dumps(
