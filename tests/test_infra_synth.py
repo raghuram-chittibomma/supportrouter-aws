@@ -326,8 +326,8 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
             "Runtime": "python3.12",
             "Architectures": ["arm64"],
             "Handler": "supportrouter.api.handler",
-            "MemorySize": 256,
-            "Timeout": 30,
+            "MemorySize": 512,
+            "Timeout": 60,
             "Environment": {
                 "Variables": {
                     "PYTHONPATH": "/var/task/src:/var/task",
@@ -337,6 +337,7 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
                     "APPROVALS_TABLE_NAME": {
                         "Ref": Match.any_value(),
                     },
+                    "SUPPORTROUTER_RUNTIME_MODE": "local",
                 },
             },
         },
@@ -390,16 +391,22 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
         "logs:PutLogEvents",
         "dynamodb:GetItem",
         "dynamodb:PutItem",
+        "bedrock:Converse",
+        "bedrock:ConverseStream",
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream",
+        "bedrock:Retrieve",
     }
 
     policy_serialized = json.dumps(policies[0])
     for forbidden in (
-        "bedrock:",
         "s3:",
         '"Action": "*"',
         '"Resource": "*"',
     ):
         assert forbidden not in policy_serialized
+    assert "bedrock:Converse" in policy_serialized
+    assert "inference-profile" in policy_serialized
 
     # Sessions + ApprovalRequests tables (on-demand, destroyable).
     template.resource_count_is("AWS::DynamoDB::Table", 2)

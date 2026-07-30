@@ -20,6 +20,7 @@ class AgentState(TypedDict):
     message: str
     correlation_id: NotRequired[str | None]
     plane: NotRequired[Literal["runtime", "eval"]]
+    runtime_mode: NotRequired[Literal["local", "aws"]]
     task_type: NotRequired[TaskType | None]
     model_id: NotRequired[str | None]
     routing_table_version: NotRequired[str | None]
@@ -34,5 +35,8 @@ class AgentState(TypedDict):
     refund_amount_usd: NotRequired[float | None]
     guardrail_input: NotRequired[dict[str, Any]]
     guardrail_output: NotRequired[dict[str, Any]]
+    draft_usage: NotRequired[dict[str, Any] | None]
+    draft_cost_usd: NotRequired[float | None]
+    actual_model_id: NotRequired[str | None]
     notes: NotRequired[list[str]]
     error: NotRequired[str | None]

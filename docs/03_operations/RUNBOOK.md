@@ -8,6 +8,7 @@ python -m venv .venv
 pip install -e ".[dev]"
 pytest
 python -m supportrouter.cli "Where is my order #VE-1001?"
+python -m supportrouter.cli --runtime-mode aws "Where is my order #VE-1001?"
 python -m supportrouter.cli --session-id demo-1 "Any update on VE-1001?"
 python -m supportrouter.cli list-pending
 python -m supportrouter.cli decide <session_id> approve --note "ok"
@@ -18,9 +19,12 @@ python -m supportrouter.cli decide <session_id> approve --note "ok"
 ```bash
 python -m supportrouter.ui
 # http://127.0.0.1:7860 — Customer chat + Supervisor HITL tabs
+# Customer tab: Local (stubs) vs AWS (Bedrock) runtime mode switch
 # Supervisor: Refresh queue → click a queue row → Approve/Reject selected session
 ```
 
+Customer chat defaults to **Local** (no Bedrock spend). **AWS** mode uses Bedrock
+Converse drafting, Tools Lambdas, and KB retrieve when configured (ADR-018).
 Supervisor reviews `pending_approval` / `escalated` sessions in the UI or via
 CLI `list-pending` / `decide`. Approve/Reject is restricted to explicit pending
 refund approval records; escalations are view-only in this slice. Approval

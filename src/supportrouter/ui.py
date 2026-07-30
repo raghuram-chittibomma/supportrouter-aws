@@ -26,22 +26,31 @@ def format_customer_reply(result: dict[str, Any]) -> str:
     return (
         f"{result.get('answer') or ''}\n\n"
         f"---\n"
+        f"**runtime_mode:** `{result.get('runtime_mode')}`  \n"
         f"**status:** `{result.get('status')}`  \n"
         f"**confidence:** `{result.get('confidence')}`  \n"
         f"**task_type:** `{result.get('task_type')}`  \n"
         f"**model_id:** `{result.get('model_id')}`  \n"
+        f"**actual_model_id:** `{result.get('actual_model_id')}`  \n"
+        f"**cost_status:** `{result.get('cost_status')}`  \n"
+        f"**cost_usd:** `{result.get('cost_usd')}`  \n"
         f"**session_id:** `{result.get('session_id')}`  \n"
         f"**hitl_reason:** {result.get('hitl_reason') or '_n/a_'}  \n"
         f"**citations:**\n{cite_lines}\n"
     )
 
 
-def customer_chat(message: str, history: list) -> tuple[list, str]:
+def customer_chat(
+    message: str,
+    history: list,
+    runtime_mode: str = "Local (stubs)",
+) -> tuple[list, str]:
     history = history or []
     text = (message or "").strip()
     if not text:
         return history, ""
-    result = run_agent(text)
+    mode = "aws" if str(runtime_mode).lower().startswith("aws") else "local"
+    result = run_agent(text, runtime_mode=mode)
     input_action = ((result.get("guardrail") or {}).get("input") or {}).get("action")
     stored_message = (
         GUARDRAIL_REDACTED_MESSAGE if input_action == "blocked" else text
@@ -174,20 +183,34 @@ def build_ui():
         gr.Markdown(
             """
             # SupportRouter — VoltEdge Electronics (synthetic)
-            Thin local demo UI. **No Bedrock / no always-on hosting** in this slice.
-            Cost note: not measured (local process only).
+            Local process UI (no always-on hosting). Choose **Local** (free stubs)
+            or **AWS** (Bedrock draft + Lambda tools + KB when configured).
+            AWS mode can incur Bedrock spend — keep Local as the default.
             """
         )
         with gr.Tab("Customer chat"):
+            runtime_mode = gr.Radio(
+                choices=["Local (stubs)", "AWS (Bedrock)"],
+                value="Local (stubs)",
+                label="Runtime mode",
+                info="Local = no Bedrock. AWS = Converse drafting + tool Lambdas + KB retrieve.",
+            )
             chatbot = gr.Chatbot(label="Support chat", height=420)
             msg = gr.Textbox(
                 label="Message",
                 placeholder="Where is my order #VE-1001?  |  I want a refund for order VE-1003",
             )
             send = gr.Button("Send", variant="primary")
-            send.click(customer_chat, inputs=[msg, chatbot], outputs=[chatbot, msg])
-            msg.submit(customer_chat, inputs=[msg, chatbot], outputs=[chatbot, msg])
-
+            send.click(
+                customer_chat,
+                inputs=[msg, chatbot, runtime_mode],
+                outputs=[chatbot, msg],
+            )
+            msg.submit(
+                customer_chat,
+                inputs=[msg, chatbot, runtime_mode],
+                outputs=[chatbot, msg],
+            )
         with gr.Tab("Supervisor (HITL)"):
             gr.Markdown(
                 "1. Click **Refresh queue** after customer messages that need HITL.  \n"

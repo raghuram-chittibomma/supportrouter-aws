@@ -41,7 +41,7 @@ def test_resolve_inference_profile_maps_logical_ids():
 
 
 def test_resolve_inference_profile_rejects_unknown():
-    with pytest.raises(ValueError, match="Unknown candidate model"):
+    with pytest.raises(ValueError, match="Unknown model_id"):
         resolve_inference_profile("logical:unknown")
 
 

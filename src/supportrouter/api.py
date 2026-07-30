@@ -1,10 +1,8 @@
 """HTTP adapter that exposes the SupportRouter agent over API Gateway.
 
-This module is a thin, deterministic edge over :func:`run_agent`. It parses an
-API Gateway HTTP API (payload format 2.0) proxy event, runs the local agent,
-persists the session/approval when DynamoDB tables are configured (#16), and
-returns a proxy-shaped response. Drafting remains a local stub, so Bedrock cost
-stays unmeasured.
+Parses an API Gateway HTTP API (payload format 2.0) proxy event, runs the agent
+in ``local`` (default) or ``aws`` runtime mode (#66), persists session/approval
+when DynamoDB tables are configured, and returns a curated proxy response.
 """
 
 from __future__ import annotations
@@ -16,6 +14,7 @@ from typing import Any
 
 from supportrouter.graph import run_agent
 from supportrouter.observability import PLANE_RUNTIME, new_correlation_id
+from supportrouter.runtime_mode import normalize_runtime_mode
 from supportrouter.sessions import save_session
 
 logger = logging.getLogger(__name__)
@@ -30,8 +29,10 @@ JSON_HEADERS = {"content-type": "application/json"}
 _PUBLIC_FIELDS = (
     "session_id",
     "correlation_id",
+    "runtime_mode",
     "task_type",
     "model_id",
+    "actual_model_id",
     "answer",
     "citations",
     "confidence",
@@ -42,6 +43,8 @@ _PUBLIC_FIELDS = (
     "approval_status",
     "guardrail",
     "cost_status",
+    "cost_usd",
+    "cost_note",
 )
 
 
@@ -65,8 +68,8 @@ def _decode_body(event: dict[str, Any]) -> str:
     return body
 
 
-def parse_request(event: dict[str, Any]) -> tuple[str, str | None]:
-    """Extract and validate ``message`` and optional ``session_id``."""
+def parse_request(event: dict[str, Any]) -> tuple[str, str | None, str | None]:
+    """Extract and validate ``message``, optional ``session_id``, ``runtime_mode``."""
     if not isinstance(event, dict):
         raise BadRequest("Event must be an object")
 
@@ -95,9 +98,21 @@ def parse_request(event: dict[str, Any]) -> tuple[str, str | None]:
                 f"Field 'session_id' exceeds {MAX_SESSION_ID_CHARS} characters"
             )
 
+    runtime_mode = payload.get("runtime_mode")
+    if runtime_mode is not None:
+        if not isinstance(runtime_mode, str) or not runtime_mode.strip():
+            raise BadRequest(
+                "Field 'runtime_mode' must be a non-empty string when provided"
+            )
+        try:
+            normalize_runtime_mode(runtime_mode)
+        except ValueError as exc:
+            raise BadRequest(str(exc)) from exc
+
     return (
         message.strip(),
         session_id.strip() if isinstance(session_id, str) else None,
+        runtime_mode.strip() if isinstance(runtime_mode, str) else None,
     )
 
 
@@ -126,7 +141,7 @@ def handle_chat_request(
     del context
     correlation_id = new_correlation_id()
     try:
-        message, session_id = parse_request(event)
+        message, session_id, runtime_mode = parse_request(event)
     except BadRequest as exc:
         return _response(
             400,
@@ -140,6 +155,7 @@ def handle_chat_request(
             session_id=session_id,
             correlation_id=correlation_id,
             plane=PLANE_RUNTIME,
+            runtime_mode=runtime_mode,
         )
         result = save_session(result)
     except Exception:  # noqa: BLE001 — edge must not leak internals to callers

@@ -31,10 +31,18 @@ env = cdk.Environment(
 )
 
 CostGuardrailsStack(app, "SupportRouter-CostGuardrails", env=env)
-KnowledgeBaseStack(app, "SupportRouter-KnowledgeBase", env=env)
+kb_stack = KnowledgeBaseStack(app, "SupportRouter-KnowledgeBase", env=env)
 GuardrailsStack(app, "SupportRouter-Guardrails", env=env)
-ToolsStack(app, "SupportRouter-Tools", env=env)
-ApiStack(app, "SupportRouter-Api", env=env)
+tools_stack = ToolsStack(app, "SupportRouter-Tools", env=env)
+ApiStack(
+    app,
+    "SupportRouter-Api",
+    env=env,
+    knowledge_base_id=kb_stack.knowledge_base_id,
+    get_order_status_function=tools_stack.get_order_status_function,
+    initiate_return_function=tools_stack.initiate_return_function,
+    issue_refund_function=tools_stack.issue_refund_function,
+)
 ObservabilityStack(app, "SupportRouter-Observability", env=env)
 EvalScheduleStack(
     app,
