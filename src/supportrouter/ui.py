@@ -51,7 +51,23 @@ def customer_chat(
     if not text:
         return history, ""
     mode = "aws" if str(runtime_mode).lower().startswith("aws") else "local"
-    result = run_agent(text, runtime_mode=mode)
+    try:
+        result = run_agent(text, runtime_mode=mode)
+    except Exception as exc:  # noqa: BLE001 — surface AWS/local failures in the chat pane
+        history = history + [
+            {"role": "user", "content": text},
+            {
+                "role": "assistant",
+                "content": (
+                    f"**Error ({mode} mode):** `{type(exc).__name__}: {exc}`\n\n"
+                    "For AWS mode locally, ensure AWS credentials and "
+                    "`AWS_DEFAULT_REGION=us-east-1` are set. Tools default to the "
+                    "deployed `supportrouter-*` Lambda names; set "
+                    "`SUPPORTROUTER_KB_ID` for Bedrock KB retrieve."
+                ),
+            },
+        ]
+        return history, ""
     input_action = ((result.get("guardrail") or {}).get("input") or {}).get("action")
     stored_message = (
         GUARDRAIL_REDACTED_MESSAGE if input_action == "blocked" else text

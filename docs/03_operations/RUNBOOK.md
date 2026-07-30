@@ -31,6 +31,16 @@ refund approval records; escalations are view-only in this slice. Approval
 decisions are idempotent, conflicting retries are rejected, and both paths
 report that no refund was executed (`execution_status=not_executed`).
 
+**Local Gradio/CLI AWS mode** needs AWS credentials and a region. Tool Lambda
+names default to the CDK `supportrouter-*` functions when env vars are unset.
+Optional KB retrieve:
+
+```powershell
+$env:AWS_DEFAULT_REGION = "us-east-1"
+$env:SUPPORTROUTER_KB_ID = "CFGK5X8ZUN"   # KnowledgeBaseId stack output
+python -m supportrouter.ui
+```
+
 Without DynamoDB env vars, sessions live only in the local process and are lost
 on restart. With `SESSIONS_TABLE_NAME` and `APPROVALS_TABLE_NAME` set (ApiStack
 outputs after deploy), the same repository API persists to DynamoDB (ADR-017).
