@@ -20,6 +20,39 @@ def test_overclaims_execution_detects_bank_timeline():
     )
 
 
+def test_overclaims_skips_honest_negations_and_policy_windows():
+    assert not overclaims_execution(
+        "No confirmation email will be sent until a supervisor approves."
+    )
+    assert not overclaims_execution(
+        "Eligible returns are accepted within 30 business days of delivery."
+    )
+    assert not overclaims_execution(
+        "Prepared only; if later executed, funds would use the original payment method."
+    )
+
+
+def test_enforce_does_not_rewrite_honest_tool_aligned_draft():
+    tool_calls = [
+        {
+            "name": "issue_refund",
+            "args": {"order_id": "VE-1002"},
+            "result": {
+                "ok": True,
+                "execution_status": "not_executed",
+                "message": "Refund of $89.99 prepared (synthetic); no payment was executed",
+            },
+        }
+    ]
+    text = (
+        "I prepared a synthetic refund of $89.99 for VE-1002. "
+        "No payment was executed. No confirmation email will be sent in this demo."
+    )
+    answer, rewritten = enforce_execution_honesty(text, tool_calls)
+    assert rewritten is False
+    assert answer == text
+
+
 def test_enforce_rewrites_overclaim_to_tool_message():
     tool_calls = [
         {

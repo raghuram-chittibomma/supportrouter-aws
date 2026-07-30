@@ -5,18 +5,21 @@ from __future__ import annotations
 import re
 from typing import Any
 
-# Phrases that overclaim payment rails or post-execution timelines.
+# Affirmative overclaims only — avoid wiping honest "prepared / not executed" text.
 _OVERCLAIM_RE = re.compile(
     "|".join(
         (
-            r"\b(?:has been|have been|was|were)\s+processed\b",
-            r"\brefund has been processed\b",
+            # Payment/refund processing claims
+            r"\b(?:refund|payment|funds)\s+(?:has|have)\s+been\s+processed\b",
+            r"\b(?:has|have)\s+been\s+processed\b",
             r"\bprocessed and is ready\b",
-            r"\b\d+\s*[-–]\s*\d+\s+business days\b",
-            r"\bbusiness days\b",
-            r"\boriginal payment method\b",
-            r"\bfunds will (?:appear|be|return)\b",
-            r"\bconfirmation email\b",
+            # Bank / funding timelines tied to refunds
+            r"\b(?:allow|within|in)\s+\d+\s*[-–]\s*\d+\s+business days\b",
+            r"\bfunds will (?:appear|be returned|return)\b",
+            r"\bappear(?:ing)?\s+(?:back\s+)?(?:in|on)\s+your\s+original payment method\b",
+            r"\b(?:refunded|returned)\s+to\s+your\s+original payment method\b",
+            # Affirmative confirmation-email claims (not "no confirmation email")
+            r"(?<!no )\bconfirmation email\b",
             r"(?<!no )payment (?:was|has been) (?:executed|sent|issued)\b",
             r"\bmoney (?:has been|was) (?:refunded|returned)\b",
         )
