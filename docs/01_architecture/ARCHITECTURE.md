@@ -90,10 +90,10 @@ Local runtime emits structured step traces with request `correlation_id` →
 `session_id` linkage. Token/cost fields are always present and stay
 `not_measured` until Bedrock usage is recorded.
 
-Local input/output guardrail nodes provide deterministic test coverage without
-claiming managed Guardrails execution. The deployable Bedrock policy and
-version are synthesized by `SupportRouter-Guardrails`; live invocation is
-deferred to the Bedrock runtime adapter.
+Local input/output guardrail nodes use the deterministic policy in
+`runtime_mode=local`. In `runtime_mode=aws`, the same boundaries call Bedrock
+`ApplyGuardrail` with the CDK `SupportRouter-Guardrails` identifier/version
+(ADR-012 / ADR-019). Local adversarial evals must not claim managed execution.
 
 The three order tools are independently deployable Lambdas with separate roles
 and resource-scoped DynamoDB access (ADR-013). The local graph still invokes

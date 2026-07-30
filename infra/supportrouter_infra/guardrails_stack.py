@@ -170,3 +170,5 @@ class GuardrailsStack(cdk.Stack):
             "GuardrailVersion",
             value=version.attr_version,
         )
+        self.guardrail_id = guardrail.attr_guardrail_id
+        self.guardrail_version = version.attr_version

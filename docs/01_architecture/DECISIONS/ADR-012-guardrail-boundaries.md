@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted — dual-provider wiring: [ADR-019](ADR-019-dual-provider-guardrails.md)
 
 ## Context
 

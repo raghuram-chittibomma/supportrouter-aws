@@ -109,18 +109,30 @@ Observability stack already creates the three dormancy-safe dashboards as stubs
 
 ### Guardrail behavior
 
-Local runs apply the versioned deterministic policy at input and output
-boundaries. A block returns a fixed safe message, records only category names,
-sets `status=rejected`, and prevents downstream processing. It does not retain
-or emit matched sensitive text; the demo UI replaces the blocked user turn with
-`[redacted: guardrail-blocked input]`. Local matching is a narrow demo-regex
-fallback, not production-equivalent PII or safety coverage.
+Guardrail nodes run after validate (input) and after draft (output)
+([ADR-012](../01_architecture/DECISIONS/ADR-012-guardrail-boundaries.md),
+[ADR-019](../01_architecture/DECISIONS/ADR-019-dual-provider-guardrails.md)).
 
-The `SupportRouter-Guardrails` CDK stack synthesizes the managed Bedrock policy
-and immutable version. Local traces identify
-`supportrouter-local-guardrail/local-v0.2`; this means the deterministic fallback
-ran, not that AWS evaluated the content. After deployment, record the stack's
-`GuardrailIdentifier` and `GuardrailVersion` outputs in the runtime adapter.
+- **`runtime_mode=local`:** versioned deterministic policy
+  (`supportrouter-local-guardrail` / `local-v0.2`). A block returns a fixed safe
+  message, records category names only, sets `status=rejected`, and prevents
+  downstream processing. The demo UI replaces the blocked user turn with
+  `[redacted: guardrail-blocked input]`.
+- **`runtime_mode=aws`:** Bedrock `ApplyGuardrail` using
+  `SUPPORTROUTER_GUARDRAIL_ID` and `SUPPORTROUTER_GUARDRAIL_VERSION` (CDK
+  `SupportRouter-Guardrails` outputs; demo account currently
+  `3hkym9cgw048` / `1`). Missing IDs fail closed. Result metadata
+  `guardrail.provider` is `bedrock`. Guardrails API spend is **not measured**
+  in chat `cost_usd` yet.
+
+Local adversarial evals must not claim managed Bedrock execution.
+
+```powershell
+$env:AWS_DEFAULT_REGION = "us-east-1"
+$env:SUPPORTROUTER_GUARDRAIL_ID = "3hkym9cgw048"
+$env:SUPPORTROUTER_GUARDRAIL_VERSION = "1"
+python -m supportrouter.ui
+```
 
 ### Prompt caching hooks
 
