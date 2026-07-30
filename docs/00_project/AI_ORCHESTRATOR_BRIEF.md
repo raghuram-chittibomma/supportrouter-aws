@@ -97,7 +97,7 @@ Durable docs: brief, charter, product brief, architecture, data model, ADRs, eva
 - English only for v0.1.
 - Single AWS account; region `us-east-1`.
 - Refund HITL threshold = $100 USD.
-- Routing table seeded until milestone 2 policy generator.
+- Routing table seeded until milestone 2 policy generator (live eval harness already delivered in v0.1; milestone 2 is routing-policy generation from scorecards).
 - CLI acceptable for supervisor approve in v0.1.
 - Public GitHub repo under `raghuram-chittibomma/supportrouter-aws`.
 
