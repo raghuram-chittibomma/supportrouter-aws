@@ -103,7 +103,7 @@ Durable docs: brief, charter, product brief, architecture, data model, ADRs, eva
 
 ## Open questions
 
-Tracked as GitHub issues labeled `flag:open-question` (exact Bedrock model IDs in account, judge model, confidence weights, KB chunking, supervisor UX, prompt-cache regional support).
+Resolved for v0.1: account inference profiles (#24) and judge model Claude Haiku 4.5 (#25). Remaining open questions stay on GitHub issues labeled `flag:open-question` (confidence weight tuning, KB chunking refinements, supervisor escalation disposition UX, prompt-cache regional support / measured hit rates).
 
 ## How AI agents and MCP tools are used
 
