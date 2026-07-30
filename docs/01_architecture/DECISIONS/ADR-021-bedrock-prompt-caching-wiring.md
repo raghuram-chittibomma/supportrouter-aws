@@ -22,8 +22,9 @@ minima, so a bare `cachePoint` would succeed with no write/read activity.
    Bedrock cache usage into `cache_enabled`, `cache_status`,
    `cache_read_tokens`, and `cache_write_tokens`.
 2. **Prefixes:** Agent (`agent-prefix-v0.3`) and judge (`eval-judge-rubric`)
-   prefixes include deterministic synthetic **cache padding** sized to the
-   model-family minimum. Request-specific content stays in the user message.
+   prefixes include deterministic synthetic **cache padding** sized to clear
+   the **strictest** supported model minimum in the routing table (Claude
+   Haiku 4.5 ≥4096 tokens). Request-specific content stays in the user message.
 3. **Call sites:** AWS agent draft, live eval candidate draft, and Haiku judge
    enable prompt caching. Local stubs remain `cache_status=not_configured`.
 4. **Status values:** `not_configured` | `write` | `hit` | `hit_and_write` |

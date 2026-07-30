@@ -11,8 +11,10 @@ from typing import Any, Mapping, Sequence
 AGENT_PROMPT_VERSION = "agent-prefix-v0.3"
 
 # Haiku 4.5 requires >=4096 tokens per checkpoint; Nova Micro/Lite ~1536.
-# Claude tokenizes ~4–4.5 chars/token on this padding; size with headroom.
-AGENT_CACHE_MIN_TOKENS = 2000
+# Agent prefix is shared across all routed models (including Haiku), so pad to
+# the stricter Haiku minimum. Claude tokenizes ~4–4.5 chars/token on this
+# padding; size with headroom so live Converse clears 4096.
+AGENT_CACHE_MIN_TOKENS = 5510
 JUDGE_CACHE_MIN_TOKENS = 5510
 _CHARS_PER_TOKEN_ESTIMATE = 4
 

@@ -40,6 +40,7 @@ def test_agent_prefix_is_stable_versioned_and_ordered():
         "cache_padding",
     ]
     assert all(block["cache_checkpoint"] is True for block in first.blocks)
+    assert len(first.stable_text()) >= 20000
     with pytest.raises(TypeError):
         first.blocks[0]["content"] = "mutated"
 
