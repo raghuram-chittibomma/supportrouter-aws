@@ -35,6 +35,7 @@ class AgentState(TypedDict):
     refund_amount_usd: NotRequired[float | None]
     guardrail_input: NotRequired[dict[str, Any]]
     guardrail_output: NotRequired[dict[str, Any]]
+    retrieve_provider: NotRequired[str | None]
     draft_usage: NotRequired[dict[str, Any] | None]
     draft_cost_usd: NotRequired[float | None]
     actual_model_id: NotRequired[str | None]

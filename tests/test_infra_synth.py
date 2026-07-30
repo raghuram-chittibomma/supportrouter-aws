@@ -392,9 +392,7 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
         "dynamodb:GetItem",
         "dynamodb:PutItem",
         "bedrock:Converse",
-        "bedrock:ConverseStream",
         "bedrock:InvokeModel",
-        "bedrock:InvokeModelWithResponseStream",
         "bedrock:Retrieve",
     }
 

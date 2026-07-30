@@ -41,8 +41,9 @@ def invoke_tool(
     """Invoke an isolated Tools Lambda and return its JSON payload."""
     if tool not in TOOL_ENV:
         raise ValueError(f"Unknown AWS tool '{tool}'")
+    function_name = _function_name(tool)
     response = _client(client).invoke(
-        FunctionName=_function_name(tool),
+        FunctionName=function_name,
         InvocationType="RequestResponse",
         Payload=json.dumps({"order_id": order_id}).encode("utf-8"),
     )

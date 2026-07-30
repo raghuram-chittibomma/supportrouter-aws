@@ -127,13 +127,19 @@ def retrieve_node(state: AgentState) -> dict[str, Any]:
         citations = retrieve(
             state["message"], task_type, provider="bedrock"
         )
+        provider = "bedrock"
         notes = notes + [f"retrieve:bedrock:{len(citations)}"]
     else:
         citations = retrieve(state["message"], task_type, provider="local")
-        suffix = "aws_fallback_local" if mode == "aws" else "local"
-        notes = notes + [f"retrieve:{suffix}:{len(citations)}"]
+        provider = "local"
+        if mode == "aws":
+            provider = "local_fallback"
+            notes = notes + [f"retrieve:aws_fallback_local:{len(citations)}"]
+        else:
+            notes = notes + [f"retrieve:local:{len(citations)}"]
     return {
         "citations": citations,
+        "retrieve_provider": provider,
         "notes": notes,
     }
 
@@ -452,6 +458,7 @@ def run_agent(
         "correlation_id": resolved_correlation_id,
         "plane": plane,
         "runtime_mode": mode,
+        "retrieve_provider": final.get("retrieve_provider") or "skipped",
         "task_type": final.get("task_type"),
         "model_id": final.get("model_id"),
         "actual_model_id": final.get("actual_model_id") or final.get("model_id"),

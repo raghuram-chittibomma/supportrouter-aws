@@ -6,7 +6,6 @@ import json
 
 import pytest
 
-from supportrouter import bedrock_converse
 from supportrouter.graph import run_agent
 from supportrouter.runtime_mode import normalize_runtime_mode
 from supportrouter.tools_aws import invoke_tool
@@ -57,8 +56,7 @@ def test_aws_mode_uses_converse_and_lambda_tools(monkeypatch):
         "supportrouter.tools_aws._client", lambda client=None: FakeLambda()
     )
     monkeypatch.setattr(
-        bedrock_converse,
-        "converse_text",
+        "supportrouter.graph.converse_text",
         lambda **kwargs: {
             "text": "Order VE-1001 is shipped. Tracking 1Z999.",
             "usage": {
@@ -73,6 +71,7 @@ def test_aws_mode_uses_converse_and_lambda_tools(monkeypatch):
 
     result = run_agent("Where is my order #VE-1001?", runtime_mode="aws")
     assert result["runtime_mode"] == "aws"
+    assert result["retrieve_provider"] == "skipped"
     assert result["status"] == "resolved"
     assert "1Z999" in (result.get("answer") or "")
     assert "local stub" not in (result.get("answer") or "")
@@ -80,6 +79,33 @@ def test_aws_mode_uses_converse_and_lambda_tools(monkeypatch):
     assert result["cost_usd"] is not None
     assert any(note.startswith("draft:aws:") for note in result["notes"])
     assert any(note.startswith("tools:aws:") for note in result["notes"])
+
+
+def test_aws_faq_reports_local_retrieve_fallback(monkeypatch):
+    monkeypatch.delenv("SUPPORTROUTER_KB_ID", raising=False)
+    monkeypatch.setattr(
+        "supportrouter.graph.converse_text",
+        lambda **kwargs: {
+            "text": "Unused items in original packaging may be returned within 30 days.",
+            "usage": {
+                "input_tokens": 20,
+                "output_tokens": 10,
+                "total_tokens": 30,
+            },
+            "stop_reason": "end_turn",
+            "model_id": kwargs["model_id"],
+        },
+    )
+    result = run_agent(
+        "What is the VoltEdge policy for unused items still in original packaging within 30 days?",
+        runtime_mode="aws",
+    )
+    assert result["task_type"] == "faq_policy"
+    assert result["runtime_mode"] == "aws"
+    assert result["retrieve_provider"] == "local_fallback"
+    assert any(
+        note.startswith("retrieve:aws_fallback_local:") for note in result["notes"]
+    )
 
 
 def test_invoke_tool_requires_function_env(monkeypatch):

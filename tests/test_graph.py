@@ -18,7 +18,7 @@ def test_order_status_resolves_with_tool():
     assert result["tool_calls"][0]["name"] == "get_order_status"
     assert result["tool_calls"][0]["result"]["ok"] is True
     assert "shipped" in result["answer"].lower()
-    assert "tools:get_order_status" in result["notes"]
+    assert "tools:local:get_order_status" in result["notes"]
     assert "hitl:resolved" in result["notes"]
 
 

@@ -23,10 +23,14 @@ only option.
 4. **aws:** Bedrock Converse draft using routed model → inference profile,
    Tools Lambda invokes, Bedrock KB retrieve when `SUPPORTROUTER_KB_ID` is set
    (otherwise local retrieve with an explicit note).
-5. Responses always echo `runtime_mode`, `actual_model_id`, and cost honesty
-   fields. Classifier/router remain deterministic in both modes for v0.1.
-6. Chat Lambda IAM gains Converse/Retrieve and scoped `lambda:InvokeFunction`
-   on the three tool functions, in addition to HITL DynamoDB access.
+5. Responses always echo `runtime_mode`, `retrieve_provider`
+   (`bedrock` / `local` / `local_fallback` / `skipped`), `actual_model_id`,
+   and cost honesty fields. Classifier/router remain deterministic in both
+   modes for v0.1.
+6. Chat Lambda IAM gains `bedrock:Converse`, `bedrock:InvokeModel`, and
+   `bedrock:Retrieve` (KB ARN scoped when known) plus scoped
+   `lambda:InvokeFunction` on the three tool functions, in addition to HITL
+   DynamoDB access.
 
 ## Consequences
 

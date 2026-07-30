@@ -1,9 +1,9 @@
-"""HTTP API edge that fronts the SupportRouter chat Lambda (ADR-014 / ADR-017).
+"""HTTP API edge that fronts the SupportRouter chat Lambda (ADR-014 / ADR-017 / ADR-018).
 
 Dormancy-safe: HTTP API (not REST) with pay-per-request pricing, throttled
-default stage, a 14-day log group, and a least-privilege role. The chat Lambda
-still drafts with the local stub (no Bedrock). When Sessions and ApprovalRequests
-tables are present, the role may read/write only those tables for HITL (#16).
+default stage, a 14-day log group, and a least-privilege role. Default runtime
+mode is ``local`` (stub drafting). ``runtime_mode=aws`` uses Bedrock Converse,
+tool Lambda invokes, and KB retrieve when configured.
 """
 
 from __future__ import annotations
@@ -176,23 +176,27 @@ class ApiStack(cdk.Stack):
                 resources=hitl_table_arns,
             )
         )
-        # AWS runtime mode: Bedrock draft + KB retrieve (service-scoped ARNs).
+        # AWS runtime mode: Bedrock Converse + KB retrieve (service-scoped ARNs).
+        bedrock_resources = [
+            "arn:aws:bedrock:*:*:inference-profile/*",
+            "arn:aws:bedrock:*:*:application-inference-profile/*",
+            "arn:aws:bedrock:*::foundation-model/*",
+        ]
+        if knowledge_base_id:
+            bedrock_resources.append(
+                f"arn:aws:bedrock:*:*:knowledge-base/{knowledge_base_id}"
+            )
+        else:
+            bedrock_resources.append("arn:aws:bedrock:*:*:knowledge-base/*")
         role.add_to_policy(
             iam.PolicyStatement(
                 sid="BedrockConverseAndRetrieve",
                 actions=[
                     "bedrock:Converse",
-                    "bedrock:ConverseStream",
                     "bedrock:InvokeModel",
-                    "bedrock:InvokeModelWithResponseStream",
                     "bedrock:Retrieve",
                 ],
-                resources=[
-                    "arn:aws:bedrock:*:*:inference-profile/*",
-                    "arn:aws:bedrock:*:*:application-inference-profile/*",
-                    "arn:aws:bedrock:*::foundation-model/*",
-                    "arn:aws:bedrock:*:*:knowledge-base/*",
-                ],
+                resources=bedrock_resources,
             )
         )
         tool_fns = [

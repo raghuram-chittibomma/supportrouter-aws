@@ -30,6 +30,7 @@ _PUBLIC_FIELDS = (
     "session_id",
     "correlation_id",
     "runtime_mode",
+    "retrieve_provider",
     "task_type",
     "model_id",
     "actual_model_id",

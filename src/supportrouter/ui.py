@@ -27,6 +27,7 @@ def format_customer_reply(result: dict[str, Any]) -> str:
         f"{result.get('answer') or ''}\n\n"
         f"---\n"
         f"**runtime_mode:** `{result.get('runtime_mode')}`  \n"
+        f"**retrieve_provider:** `{result.get('retrieve_provider')}`  \n"
         f"**status:** `{result.get('status')}`  \n"
         f"**confidence:** `{result.get('confidence')}`  \n"
         f"**task_type:** `{result.get('task_type')}`  \n"
