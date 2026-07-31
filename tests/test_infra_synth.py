@@ -23,6 +23,14 @@ from supportrouter_infra.guardrails_stack import (  # noqa: E402
     BEDROCK_GUARDRAIL_POLICY_SPEC,
     GuardrailsStack,
 )
+from supportrouter_infra.agentcore_stack import (  # noqa: E402
+    AGENTCORE_REQUIREMENTS,
+    RUNTIME_NAME,
+    AgentCoreLocalBundling,
+    AgentCoreStack,
+    agentcore_runtime_bundling,
+    copy_agentcore_sources,
+)
 from supportrouter_infra.api_stack import (  # noqa: E402
     RUNTIME_REQUIREMENTS,
     ApiStack,
@@ -454,6 +462,57 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
             "KeySchema": [{"AttributeName": "task_type", "KeyType": "HASH"}],
         },
     )
+
+
+def test_agentcore_stack_creates_http_runtime_with_short_idle(
+    env: cdk.Environment,
+) -> None:
+    app = cdk.App()
+    api = ApiStack(app, "ApiForAgentCore", env=env)
+    stack = AgentCoreStack(
+        app,
+        "AgentCore",
+        env=env,
+        sessions_table=api.sessions_table,
+        approvals_table=api.approvals_table,
+        routing_table=api.routing_table,
+    )
+    template = Template.from_stack(stack)
+    template.has_resource_properties(
+        "AWS::BedrockAgentCore::Runtime",
+        {
+            "AgentRuntimeName": RUNTIME_NAME,
+            "ProtocolConfiguration": "HTTP",
+            "LifecycleConfiguration": {
+                "IdleRuntimeSessionTimeout": 120,
+            },
+            "EnvironmentVariables": Match.object_like(
+                {
+                    "SUPPORTROUTER_RUNTIME_MODE": "local",
+                    "SUPPORTROUTER_ROUTING_TABLE_NAME": Match.any_value(),
+                    "SESSIONS_TABLE_NAME": Match.any_value(),
+                    "APPROVALS_TABLE_NAME": Match.any_value(),
+                }
+            ),
+        },
+    )
+    raw = json.dumps(template.to_json())
+    assert "AWS::ApiGatewayV2::Api" not in raw
+    assert "dynamodb:Scan" not in raw
+    assert AGENTCORE_REQUIREMENTS.is_file()
+    assert "bedrock-agentcore==1.19.0" in AGENTCORE_REQUIREMENTS.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_agentcore_asset_layout_and_local_bundler(tmp_path: Path) -> None:
+    copy_agentcore_sources(tmp_path)
+    assert (tmp_path / "supportrouter" / "agentcore_main.py").is_file()
+    assert not (tmp_path / "supportrouter" / "ui.py").exists()
+    assert (tmp_path / "data" / "sample" / "routing_table.json").is_file()
+    bundling = agentcore_runtime_bundling()
+    assert bundling.platform == "linux/arm64"
+    assert isinstance(bundling.local, AgentCoreLocalBundling)
 
 
 def test_chat_runtime_asset_contains_code_data_and_pinned_dependencies(

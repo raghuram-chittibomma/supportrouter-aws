@@ -237,6 +237,7 @@ After destroy, confirm in `us-east-1` (or deploy region):
   `supportrouter-refundrequests` tables remain
 - [ ] No `supportrouter-get-order-status`, `supportrouter-initiate-return`, or
   `supportrouter-issue-refund` Lambdas remain
+- [ ] No `SupportRouter-AgentCore` stack / AgentCore Runtime for SupportRouter
 - [ ] No `SupportRouter-EvalSchedule` stack (or confirm `ReevalScheduleEnabled=false` and no `supportrouter-reeval-schedule` EventBridge rule)
 - [ ] EventBridge: no SupportRouter re-eval rules left behind
 - [ ] No SupportRouter log groups with **never-expire** retention
@@ -408,14 +409,41 @@ routing quality/cost/latency only from the source scorecard + adopted artifact.
 
 ## AgentCore Runtime (v0.6 stretch, ADR-024)
 
-**Status:** architecture decided; CDK/entrypoint not shipped until #94.
+Dual-run: **`SupportRouter-Api` remains the default chat edge.** AgentCore is an
+opt-in second host wrapping the same `run_agent` contracts.
 
-- Dual-run: keep `SupportRouter-Api` chat Lambda; optional AgentCore Runtime
-  wraps the same `run_agent` contracts (`BedrockAgentCoreApp`, ARM64/ECR).
-- Gateway MCP for tool Lambdas is optional (#93), after Runtime MVP.
-- Invoke (once deployed): SigV4 `InvokeAgentRuntime` — details land with #94.
-- Dormancy: destroy the AgentCore stack when not demoing; do not claim cost
-  savings without a measured scorecard (#95).
+### Deploy
+
+```powershell
+cd infra
+npx cdk deploy SupportRouter-AgentCore -c enable_agentcore=true --require-approval never
+cd ..
+```
+
+Requires `-c enable_agentcore=true` (default **off** so `cdk deploy --all` stays
+dormancy-safe). Depends on Api (tables) + Tools/KB/Guardrails already deployed.
+Stack name: `SupportRouter-AgentCore`. Idle session timeout is **120s**.
+
+### Invoke (SigV4)
+
+```powershell
+# Resolve ARN from stack output AgentRuntimeArn, then:
+aws bedrock-agentcore invoke-agent-runtime `
+  --agent-runtime-arn "<AgentRuntimeArn>" `
+  --payload '{\"prompt\":\"What is your return window?\",\"runtime_mode\":\"local\"}' `
+  --qualifier DEFAULT `
+  outfile.json
+```
+
+Payload accepts `message` or `prompt`, optional `session_id`, `runtime_mode`
+(`local` default / `aws`). Tools stay Lambda-invoke (Gateway MCP is #93).
+
+### Teardown / dormancy
+
+`scripts/teardown.ps1` / `.sh` run `cdk destroy --all` and remove this stack with
+the rest. Prefer destroying AgentCore when not demoing — ECR/S3 code-asset
+storage is a small always-on cost while the stack exists. AgentCore
+CPU/memory **not measured** until #95.
 
 ## Cost guardrails
 

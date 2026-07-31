@@ -3,6 +3,21 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — AgentCore Runtime CDK dual-run host (#94 / ADR-024)
+
+### Shipped
+
+- `SupportRouter-AgentCore`: AgentCore Runtime (HTTP) via code asset +
+  `python -m supportrouter.agentcore_main` (`BedrockAgentCoreApp`).
+- Opt-in via CDK context `enable_agentcore=true` (default off).
+- Thin adapter maps `message`/`prompt` → `run_agent`; Api Lambda chat unchanged.
+- Idle session timeout 120s; RUNBOOK deploy/invoke/teardown; synth tests.
+
+### Cost note
+
+AgentCore Runtime/Gateway spend **not measured**. Destroy the stack when
+dormant (ADR-008); code-asset storage is small while left deployed.
+
 ## Unreleased — AgentCore host-path spike (#92 / ADR-024)
 
 ### Shipped
