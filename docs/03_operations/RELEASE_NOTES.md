@@ -3,23 +3,27 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
-## Unreleased — AgentCore smoke / not-measured scorecard (#95)
+## v0.6.0 — AgentCore dual-run stretch (2026-07-31)
+
+Milestone **v0.6 AgentCore / MCP Stretch** (ADR-024): opt-in AgentCore Runtime
++ optional Gateway MCP over tool Lambdas, without cutting over the Api Lambda
+chat edge.
 
 ### Shipped
 
-- Explicit scorecard
-  [`scorecard-v0.6-agentcore-not-measured`](../../evals/scorecards/scorecard-v0.6-agentcore-not-measured.json):
-  AgentCore host **quality** and **cost** are **not measured**.
-- Local smoke: `tests/test_agentcore_smoke.py` runs golden `faq-policy-001`
-  through `handle_agentcore_payload` (adapter wiring only).
-- RUNBOOK documents local smoke + optional `InvokeAgentRuntime` path without
-  authorizing README metric claims.
+- **ADR-024 / #92:** dual-run host path (keep Api; SigV4 demos; us-east-1).
+- **#94:** `SupportRouter-AgentCore` (`-c enable_agentcore=true`) — HTTP Runtime
+  via code asset + `BedrockAgentCoreApp` wrapping `run_agent`; 120s idle timeout.
+- **#93:** `SupportRouter-AgentCoreGateway` (`-c enable_agentcore_gateway=true`) —
+  IAM-auth MCP targets for order/return/refund Lambdas (`target___tool` names).
+- **#95:** Local adapter smoke (`faq-policy-001`) + explicit not-measured
+  scorecard.
 
-### Cost / quality note
+### Explicitly not measured
 
 | Metric | Status | Evidence |
 |--------|--------|----------|
-| AgentCore Runtime session cost | not measured | scorecard-v0.6-agentcore-not-measured |
+| AgentCore Runtime session cost | not measured | [`scorecard-v0.6-agentcore-not-measured`](../../evals/scorecards/scorecard-v0.6-agentcore-not-measured.json) |
 | AgentCore Gateway invoke cost | not measured | same |
 | AgentCore golden quality / judge pass | not measured | same |
 | Local adapter smoke (faq-policy-001) | wiring only | `tests/test_agentcore_smoke.py` |
@@ -27,47 +31,12 @@ This file mirrors **measured** results only. Unmeasured claims stay explicit.
 Do not equate AgentCore host quality with
 [`scorecard-v0.1-live-bedrock-2026-07-29`](../../evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json).
 
-## Unreleased — AgentCore Gateway MCP tool targets (#93 / ADR-024)
+### Release-readiness notes
 
-### Shipped
-
-- Opt-in `SupportRouter-AgentCoreGateway` (`-c enable_agentcore_gateway=true`):
-  IAM-auth MCP Gateway with three Lambda targets for order/return/refund.
-- Discovered tool names `target___tool`; graph direct Lambda invoke unchanged.
-- RUNBOOK + synth smoke tests.
-
-### Cost note
-
-Gateway invoke/catalog spend **not measured**. Destroy when dormant.
-
-## Unreleased — AgentCore Runtime CDK dual-run host (#94 / ADR-024)
-
-### Shipped
-
-- `SupportRouter-AgentCore`: AgentCore Runtime (HTTP) via code asset +
-  `python -m supportrouter.agentcore_main` (`BedrockAgentCoreApp`).
-- Opt-in via CDK context `enable_agentcore=true` (default off).
-- Thin adapter maps `message`/`prompt` → `run_agent`; Api Lambda chat unchanged.
-- Idle session timeout 120s; RUNBOOK deploy/invoke/teardown; synth tests.
-
-### Cost note
-
-AgentCore Runtime/Gateway spend **not measured**. Destroy the stack when
-dormant (ADR-008); code-asset storage is small while left deployed.
-
-## Unreleased — AgentCore host-path spike (#92 / ADR-024)
-
-### Shipped
-
-- ADR-024: dual-run AgentCore Runtime wrapping existing `run_agent` contracts;
-  keep Api Lambda edge; Gateway MCP optional; SigV4 demo auth; us-east-1.
-- Implementation order: CDK Runtime (#94) → optional Gateway (#93) → smoke
-  eval / not-measured note (#95).
-
-### Cost note
-
-AgentCore Runtime/Gateway spend **not measured**. Published consumption pricing
-only; dormant months should destroy the AgentCore stack (ADR-008).
+- Milestone v0.6: **0 open issues** (closed on GitHub).
+- Synthetic data only; Api Lambda remains the default demo edge.
+- Destroy AgentCore stacks when dormant (ADR-008); context flags default **off**.
+- Cost note for this release process: **not measured** beyond linked scorecards.
 
 ## v0.5.0 — Routing + platform hardening (2026-07-31)
 
@@ -141,7 +110,7 @@ Dollar budget remains `SupportRouter-CostGuardrails` ($20/mo).
 
 - Milestones v0.2–v0.5: **0 open issues** (closed on GitHub).
 - Synthetic data only; no real customer content.
-- Next planned stretch: milestone **v0.6 AgentCore / MCP** (empty until scoped).
+- Follow-on stretch shipped as **v0.6.0** (AgentCore dual-run).
 - Cost note for this release process: **not measured** beyond linked scorecards.
 
 ## v0.1.0 — Eval-Routed Agent Demo (2026-07-29)

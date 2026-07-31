@@ -102,8 +102,8 @@ Durable docs: brief, charter, product brief, architecture, data model, ADRs, eva
 - CLI acceptable for supervisor approve in v0.1.
 - Public GitHub repo under `raghuram-chittibomma/supportrouter-aws`.
 - Milestones **v0.2–v0.5** closed; GitHub Release **v0.5.0** is the cumulative
-  tag. Stretch **v0.6 AgentCore / MCP** delivered under story #91 (ADR-024;
-  Runtime #94, Gateway #93, not-measured scorecard #95).
+  tag. Stretch **v0.6 AgentCore / MCP** delivered under story #91; GitHub Release
+  **v0.6.0** (ADR-024; Runtime #94, Gateway #93, not-measured scorecard #95).
 
 ## Open questions
 
