@@ -59,7 +59,7 @@ GitHub owns backlog, issues, AC, milestones, Project board, labels, PRs, and rel
 | Evals / tests | `evals/`, `tests/`, scorecards |
 | Releases | GitHub Releases (+ mirrored measured notes) |
 | Initiation intent | This brief |
-| Build-time agents/skills | `enterprise_sdlc_mcp` catalog |
+| Build-time agents/skills | [`enterprise-sdlc-mcp`](https://github.com/raghuram-chittibomma/enterprise-sdlc-mcp) catalog (standalone repo, installed editable into this project's own `.venv`) |
 
 ## Build-time vs runtime
 
