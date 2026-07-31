@@ -1,10 +1,10 @@
 {
   "mcpServers": {
     "enterprise-sdlc": {
-      "command": ".venv/Scripts/python.exe",
+      "command": "C:\\Users\\raghu\\supportrouter-aws\\.venv\\Scripts\\python.exe",
       "args": ["-m", "enterprise_sdlc_mcp.server"],
       "env": {
-        "SDLC_PROJECT_MANIFEST": "sdlc.project.yaml"
+        "SDLC_PROJECT_MANIFEST": "C:\\Users\\raghu\\supportrouter-aws\\sdlc.project.yaml"
       }
     }
   }
