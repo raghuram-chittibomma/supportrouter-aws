@@ -3,6 +3,19 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — Portfolio front door (#105)
+
+### Shipped
+
+- README rewritten for hiring-manager audit path (measured table, v0.6 status,
+  links to walkthrough + AWS diagrams + releases).
+- [`docs/00_project/PORTFOLIO_WALKTHROUGH.md`](../../docs/00_project/PORTFOLIO_WALKTHROUGH.md)
+  (~5–10 min).
+
+### Cost note
+
+Docs only (not measured).
+
 ## v0.6.0 — AgentCore dual-run stretch (2026-07-31)
 
 Milestone **v0.6 AgentCore / MCP Stretch** (ADR-024): opt-in AgentCore Runtime
