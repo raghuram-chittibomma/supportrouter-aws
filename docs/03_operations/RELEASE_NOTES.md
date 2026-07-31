@@ -3,6 +3,22 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — Adopt generated routing table (#86)
+
+### Shipped
+
+- `--adopt --yes` writes a runtime-ready routing table (no selection audit) and
+  is required to overwrite `data/sample/routing_table.json`.
+- Seed adopted from
+  [`scorecard-v0.1-live-bedrock-2026-07-29`](../../evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json)
+  (`routing_table_version=generated-from-scorecard-v0.1-live-bedrock-2026-07-29`).
+  Model IDs for covered + keep-seed tasks match the prior seed; version now
+  traces to the measured scorecard.
+
+### Cost note
+
+Offline adopt only (not measured).
+
 ## Unreleased — Offline routing-policy generator (#84 / ADR-022)
 
 ### Shipped

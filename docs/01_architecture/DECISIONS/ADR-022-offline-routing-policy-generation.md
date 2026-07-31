@@ -28,8 +28,9 @@ measured scorecard to a candidate routing table without Bedrock spend.
 6. **Output:** routing-table-shaped JSON with
    `routing_table_version=generated-from-<scorecard_id>`, selection audit
    trail, and optional keep-seed for task types absent from the scorecard.
-   Does not overwrite the seed file unless the operator points `--out` at it.
-7. **CLI:** `python -m evals.generate_routing_policy`.
+7. **Adopt:** `--adopt` writes a runtime-ready table (no selection audit).
+   Overwriting `data/sample/routing_table.json` requires `--adopt --yes`.
+8. **CLI:** `python -m evals.generate_routing_policy`.
 
 DynamoDB RoutingTable publish is out of scope (follow-on).
 

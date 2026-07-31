@@ -344,7 +344,9 @@ judge scores, and token-derived cost estimates.
 
 ## Routing policy from scorecards (ADR-003 / ADR-022)
 
-Offline transform (no Bedrock). Prefer a measured live scorecard:
+Offline transform (no Bedrock). Prefer a measured live scorecard.
+
+### 1. Generate (inspect)
 
 ```powershell
 python -m evals.generate_routing_policy `
@@ -353,16 +355,38 @@ python -m evals.generate_routing_policy `
   --out routing_table.generated.json
 ```
 
+Inspect `routing_table.generated.json` (`routes`, `selection`, version). Full
+generator output includes a selection audit and must **not** be written straight
+to the canonical seed path.
+
+### 2. Adopt into the seed (explicit)
+
+After inspection, write a runtime-ready table (no selection audit) to the seed:
+
+```powershell
+python -m evals.generate_routing_policy `
+  --scorecard evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json `
+  --seed data/sample/routing_table.json `
+  --out data/sample/routing_table.json `
+  --adopt --yes
+```
+
+`--adopt --yes` is required to overwrite `data/sample/routing_table.json`.
+Task types absent from the scorecard stay on the seed (keep-seed).
+
+### 3. Verify
+
+```powershell
+python -c "from supportrouter.router import route; print(route('order_status'))"
+```
+
+Expect `routing_table_version` like `generated-from-<scorecard_id>`.
+
 - Refuses incomplete/local-stub scorecards unless `--allow-incomplete`.
-- Regenerates routes only for task types present in the scorecard; `--seed`
-  copies through missing task types (e.g. `unknown`).
-- Does **not** overwrite `data/sample/routing_table.json` unless `--out` points
-  there. Inspect the generated file before adopting.
 - Optional knobs: `--quality-tolerance 0.05`, `--p95-latency-cap-ms 12000`.
 
-**Cost note:** generation is an offline JSON transform (not measured). Cite
-routing quality/cost/latency only from the source scorecard + generated
-artifact.
+**Cost note:** generation/adopt is an offline JSON transform (not measured). Cite
+routing quality/cost/latency only from the source scorecard + adopted artifact.
 
 ## Cost guardrails
 
