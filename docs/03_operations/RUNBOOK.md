@@ -416,12 +416,13 @@ opt-in second host wrapping the same `run_agent` contracts.
 
 ```powershell
 cd infra
-npx cdk deploy SupportRouter-AgentCore --require-approval never
+npx cdk deploy SupportRouter-AgentCore -c enable_agentcore=true --require-approval never
 cd ..
 ```
 
-Depends on Api (tables) + Tools/KB/Guardrails already deployed. Stack name:
-`SupportRouter-AgentCore`. Idle session timeout is **120s** (demo-friendly).
+Requires `-c enable_agentcore=true` (default **off** so `cdk deploy --all` stays
+dormancy-safe). Depends on Api (tables) + Tools/KB/Guardrails already deployed.
+Stack name: `SupportRouter-AgentCore`. Idle session timeout is **120s**.
 
 ### Invoke (SigV4)
 

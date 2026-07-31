@@ -9,6 +9,7 @@ This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
 - `SupportRouter-AgentCore`: AgentCore Runtime (HTTP) via code asset +
   `python -m supportrouter.agentcore_main` (`BedrockAgentCoreApp`).
+- Opt-in via CDK context `enable_agentcore=true` (default off).
 - Thin adapter maps `message`/`prompt` → `run_agent`; Api Lambda chat unchanged.
 - Idle session timeout 120s; RUNBOOK deploy/invoke/teardown; synth tests.
 
