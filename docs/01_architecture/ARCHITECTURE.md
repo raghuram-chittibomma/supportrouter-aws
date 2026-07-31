@@ -111,7 +111,9 @@ and synthetic fixtures (ADR-015).
 
 Keep tool contracts, KB corpus, routing table schema, and eval harness stable.
 Milestone **v0.6** (ADR-024): **dual-run** Bedrock AgentCore Runtime hosts the
-same LangGraph `run_agent` path behind `BedrockAgentCoreApp` (ARM64 container /
-ECR); API Gateway + chat Lambda remain the default edge. AgentCore Gateway MCP
-over the three tool Lambdas is optional. Destroy the AgentCore stack when
-dormant; do not claim AgentCore cost wins without a measured scorecard (#95).
+same LangGraph `run_agent` path behind `BedrockAgentCoreApp` (ARM64 code asset);
+API Gateway + chat Lambda remain the default edge. Opt-in AgentCore Gateway
+(`SupportRouter-AgentCoreGateway`) can expose the three tool Lambdas as MCP
+tools (`target___tool` names) without changing the graph’s direct Lambda invoke
+path. Destroy AgentCore stacks when dormant; do not claim AgentCore cost wins
+without a measured scorecard (#95).

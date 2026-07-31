@@ -237,7 +237,7 @@ After destroy, confirm in `us-east-1` (or deploy region):
   `supportrouter-refundrequests` tables remain
 - [ ] No `supportrouter-get-order-status`, `supportrouter-initiate-return`, or
   `supportrouter-issue-refund` Lambdas remain
-- [ ] No `SupportRouter-AgentCore` stack / AgentCore Runtime for SupportRouter
+- [ ] No `SupportRouter-AgentCore` / `SupportRouter-AgentCoreGateway` stacks
 - [ ] No `SupportRouter-EvalSchedule` stack (or confirm `ReevalScheduleEnabled=false` and no `supportrouter-reeval-schedule` EventBridge rule)
 - [ ] EventBridge: no SupportRouter re-eval rules left behind
 - [ ] No SupportRouter log groups with **never-expire** retention
@@ -444,6 +444,34 @@ Payload accepts `message` or `prompt`, optional `session_id`, `runtime_mode`
 the rest. Prefer destroying AgentCore when not demoing — ECR/S3 code-asset
 storage is a small always-on cost while the stack exists. AgentCore
 CPU/memory **not measured** until #95.
+
+### AgentCore Gateway MCP tools (optional, #93)
+
+Expose the three tool Lambdas as MCP tools without changing the graph’s direct
+Lambda invoke path.
+
+```powershell
+cd infra
+npx cdk deploy SupportRouter-AgentCoreGateway -c enable_agentcore_gateway=true --require-approval never
+cd ..
+```
+
+| MCP tool name (discovered) | Lambda |
+|----------------------------|--------|
+| `order-status___get_order_status` | `supportrouter-get-order-status` |
+| `initiate-return___initiate_return` | `supportrouter-initiate-return` |
+| `issue-refund___issue_refund` | `supportrouter-issue-refund` |
+
+Synthetic-only: pass `{"order_id":"VE-1001"}` (see `data/sample/orders.json`).
+Inbound auth is **AWS IAM** (SigV4). Stack outputs: `GatewayUrl`, `GatewayArn`,
+`McpToolNames`.
+
+LangGraph / chat Lambda continue to call tools via `lambda:InvokeFunction`.
+Gateway is for MCP clients / future AgentCore MCP discovery — not required for
+Runtime MVP (#94).
+
+**Cost note:** Gateway invoke + any residual catalog fees are **not measured**
+as Bedrock savings. Destroy `SupportRouter-AgentCoreGateway` when dormant.
 
 ## Cost guardrails
 
