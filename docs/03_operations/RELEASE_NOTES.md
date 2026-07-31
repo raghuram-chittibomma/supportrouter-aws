@@ -3,6 +3,21 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — Offline routing-policy generator (#84 / ADR-022)
+
+### Shipped
+
+- `python -m evals.generate_routing_policy` applies ADR-003 selection
+  (cheapest within 5% of best quality under a p95 latency cap) from a measured
+  scorecard to a candidate routing-table JSON.
+- Incomplete/local-stub scorecards refused by default; seed passthrough for
+  uncovered task types; seed file not overwritten unless `--out` points at it.
+
+### Cost note
+
+Offline transform only (not measured). Routing claims must cite the source
+scorecard (e.g. `scorecard-v0.1-live-bedrock-2026-07-29`).
+
 ## Unreleased — EvalSchedule opt-in (#75)
 
 ### Shipped

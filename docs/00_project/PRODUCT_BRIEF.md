@@ -21,7 +21,7 @@ VoltEdge support volume is dominated by routine order, return, FAQ, and compatib
 4. Refund ≤$100 auto / &gt;$100 HITL  
 5. Product compatibility via RAG  
 6. Low-confidence escalation  
-7. Offline eval → scorecard → (later) routing update  
+7. Offline eval → scorecard → routing update (`evals.generate_routing_policy`, ADR-022; DynamoDB publish later)
 
 ## Functional requirements (summary)
 

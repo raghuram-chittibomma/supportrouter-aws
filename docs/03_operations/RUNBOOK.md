@@ -342,6 +342,28 @@ cost, and overall pass as incomplete — do not use them for routing or release
 claims. Live runs (`--live`, ADR-016) record executed candidates, completed
 judge scores, and token-derived cost estimates.
 
+## Routing policy from scorecards (ADR-003 / ADR-022)
+
+Offline transform (no Bedrock). Prefer a measured live scorecard:
+
+```powershell
+python -m evals.generate_routing_policy `
+  --scorecard evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json `
+  --seed data/sample/routing_table.json `
+  --out routing_table.generated.json
+```
+
+- Refuses incomplete/local-stub scorecards unless `--allow-incomplete`.
+- Regenerates routes only for task types present in the scorecard; `--seed`
+  copies through missing task types (e.g. `unknown`).
+- Does **not** overwrite `data/sample/routing_table.json` unless `--out` points
+  there. Inspect the generated file before adopting.
+- Optional knobs: `--quality-tolerance 0.05`, `--p95-latency-cap-ms 12000`.
+
+**Cost note:** generation is an offline JSON transform (not measured). Cite
+routing quality/cost/latency only from the source scorecard + generated
+artifact.
+
 ## Cost guardrails
 
 - AWS Budget alert: **$20/month**, filtered by tag `Project=supportrouter` (ADR-008)
