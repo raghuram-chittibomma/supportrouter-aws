@@ -115,5 +115,6 @@ same LangGraph `run_agent` path behind `BedrockAgentCoreApp` (ARM64 code asset);
 API Gateway + chat Lambda remain the default edge. Opt-in AgentCore Gateway
 (`SupportRouter-AgentCoreGateway`) can expose the three tool Lambdas as MCP
 tools (`target___tool` names) without changing the graph’s direct Lambda invoke
-path. Destroy AgentCore stacks when dormant; do not claim AgentCore cost wins
-without a measured scorecard (#95).
+path. Destroy AgentCore stacks when dormant; AgentCore quality/cost are
+explicitly **not measured**
+([`scorecard-v0.6-agentcore-not-measured`](../../evals/scorecards/scorecard-v0.6-agentcore-not-measured.json)).
