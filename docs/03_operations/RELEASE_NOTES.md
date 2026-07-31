@@ -3,6 +3,30 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — AgentCore smoke / not-measured scorecard (#95)
+
+### Shipped
+
+- Explicit scorecard
+  [`scorecard-v0.6-agentcore-not-measured`](../../evals/scorecards/scorecard-v0.6-agentcore-not-measured.json):
+  AgentCore host **quality** and **cost** are **not measured**.
+- Local smoke: `tests/test_agentcore_smoke.py` runs golden `faq-policy-001`
+  through `handle_agentcore_payload` (adapter wiring only).
+- RUNBOOK documents local smoke + optional `InvokeAgentRuntime` path without
+  authorizing README metric claims.
+
+### Cost / quality note
+
+| Metric | Status | Evidence |
+|--------|--------|----------|
+| AgentCore Runtime session cost | not measured | scorecard-v0.6-agentcore-not-measured |
+| AgentCore Gateway invoke cost | not measured | same |
+| AgentCore golden quality / judge pass | not measured | same |
+| Local adapter smoke (faq-policy-001) | wiring only | `tests/test_agentcore_smoke.py` |
+
+Do not equate AgentCore host quality with
+[`scorecard-v0.1-live-bedrock-2026-07-29`](../../evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json).
+
 ## Unreleased — AgentCore Gateway MCP tool targets (#93 / ADR-024)
 
 ### Shipped

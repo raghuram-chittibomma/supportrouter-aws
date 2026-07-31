@@ -82,6 +82,11 @@ adopt, publish to DynamoDB with `python scripts/publish_routing_table.py`
 (ADR-023). Cite routing claims only from the source scorecard + adopted
 artifact.
 
+AgentCore dual-run host (#95): quality and cost are explicitly **not measured**
+until a live InvokeAgentRuntime scorecard exists. See
+`evals/scorecards/scorecard-v0.6-agentcore-not-measured.json` and
+`tests/test_agentcore_smoke.py` (local adapter smoke only).
+
 ## Anti-leakage
 
 Golden eval inputs must never be injected into production prompts or few-shot examples.

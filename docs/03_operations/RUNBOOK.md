@@ -441,9 +441,28 @@ Payload accepts `message` or `prompt`, optional `session_id`, `runtime_mode`
 ### Teardown / dormancy
 
 `scripts/teardown.ps1` / `.sh` run `cdk destroy --all` and remove this stack with
-the rest. Prefer destroying AgentCore when not demoing — ECR/S3 code-asset
-storage is a small always-on cost while the stack exists. AgentCore
-CPU/memory **not measured** until #95.
+the rest. Prefer destroying AgentCore when not demoing — code-asset storage is a small
+always-on cost while the stack exists.
+
+### Smoke path (#95) — local (default) + optional AWS
+
+**Measured quality/cost on AgentCore: not measured.** Evidence artifact:
+[`evals/scorecards/scorecard-v0.6-agentcore-not-measured.json`](../../evals/scorecards/scorecard-v0.6-agentcore-not-measured.json).
+
+Local smoke (no deploy, no Bedrock) — golden `faq-policy-001` via the AgentCore
+adapter:
+
+```powershell
+python -m pytest tests/test_agentcore_smoke.py -q
+```
+
+Optional AWS smoke (cost-sensitive; still not a scorecard until you publish one):
+
+1. Deploy Runtime (`-c enable_agentcore=true`).
+2. `InvokeAgentRuntime` with payload from golden `faq-policy-001` or
+   `ord-status-001` (`prompt` + optional `runtime_mode`).
+3. Confirm a non-empty answer / expected status; do **not** update README metrics
+   unless you write a measured scorecard under `evals/scorecards/`.
 
 ### AgentCore Gateway MCP tools (optional, #93)
 

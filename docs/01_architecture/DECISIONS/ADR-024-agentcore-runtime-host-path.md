@@ -65,7 +65,8 @@ Region **us-east-1** is in the AgentCore Runtime regional set. CDK L2 exists as
 ### 5. Eval plane unchanged
 
 - Offline harness, scorecards, routing publish remain separate (ADR-016/022/023).
-- AgentCore quality/cost claims need #95 evidence or explicit **not measured**.
+- AgentCore quality/cost claims need #95 evidence or explicit **not measured**
+  ([`scorecard-v0.6-agentcore-not-measured`](../../../evals/scorecards/scorecard-v0.6-agentcore-not-measured.json)).
 
 ## Keep / drop vs current Api path
 
