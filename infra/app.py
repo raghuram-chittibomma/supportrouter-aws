@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import aws_cdk as cdk
 
+from supportrouter_infra.agentcore_gateway_stack import AgentCoreGatewayStack
 from supportrouter_infra.agentcore_stack import AgentCoreStack
 from supportrouter_infra.api_stack import ApiStack
 from supportrouter_infra.cost_guardrails_stack import CostGuardrailsStack
@@ -26,6 +27,9 @@ app = cdk.App()
 
 enable_reeval = _as_bool(app.node.try_get_context("enable_reeval_schedule"), default=False)
 enable_agentcore = _as_bool(app.node.try_get_context("enable_agentcore"), default=False)
+enable_agentcore_gateway = _as_bool(
+    app.node.try_get_context("enable_agentcore_gateway"), default=False
+)
 
 env = cdk.Environment(
     account=app.node.try_get_context("account") or None,
@@ -59,6 +63,16 @@ if enable_agentcore:
         knowledge_base_id=kb_stack.knowledge_base_id,
         guardrail_id=guardrails_stack.guardrail_id,
         guardrail_version=guardrails_stack.guardrail_version,
+        get_order_status_function=tools_stack.get_order_status_function,
+        initiate_return_function=tools_stack.initiate_return_function,
+        issue_refund_function=tools_stack.issue_refund_function,
+    )
+# Optional MCP façade over tool Lambdas (ADR-024 / #93).
+if enable_agentcore_gateway:
+    AgentCoreGatewayStack(
+        app,
+        "SupportRouter-AgentCoreGateway",
+        env=env,
         get_order_status_function=tools_stack.get_order_status_function,
         initiate_return_function=tools_stack.initiate_return_function,
         issue_refund_function=tools_stack.issue_refund_function,

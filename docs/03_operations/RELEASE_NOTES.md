@@ -3,6 +3,19 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — AgentCore Gateway MCP tool targets (#93 / ADR-024)
+
+### Shipped
+
+- Opt-in `SupportRouter-AgentCoreGateway` (`-c enable_agentcore_gateway=true`):
+  IAM-auth MCP Gateway with three Lambda targets for order/return/refund.
+- Discovered tool names `target___tool`; graph direct Lambda invoke unchanged.
+- RUNBOOK + synth smoke tests.
+
+### Cost note
+
+Gateway invoke/catalog spend **not measured**. Destroy when dormant.
+
 ## Unreleased — AgentCore Runtime CDK dual-run host (#94 / ADR-024)
 
 ### Shipped

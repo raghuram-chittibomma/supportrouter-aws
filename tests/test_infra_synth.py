@@ -23,6 +23,11 @@ from supportrouter_infra.guardrails_stack import (  # noqa: E402
     BEDROCK_GUARDRAIL_POLICY_SPEC,
     GuardrailsStack,
 )
+from supportrouter_infra.agentcore_gateway_stack import (  # noqa: E402
+    GATEWAY_NAME,
+    TOOL_TARGETS,
+    AgentCoreGatewayStack,
+)
 from supportrouter_infra.agentcore_stack import (  # noqa: E402
     AGENTCORE_REQUIREMENTS,
     RUNTIME_NAME,
@@ -462,6 +467,36 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
             "KeySchema": [{"AttributeName": "task_type", "KeyType": "HASH"}],
         },
     )
+
+
+def test_agentcore_gateway_exposes_three_lambda_targets(
+    env: cdk.Environment,
+) -> None:
+    app = cdk.App()
+    tools = ToolsStack(app, "ToolsForGateway", env=env)
+    stack = AgentCoreGatewayStack(
+        app,
+        "Gateway",
+        env=env,
+        get_order_status_function=tools.get_order_status_function,
+        initiate_return_function=tools.initiate_return_function,
+        issue_refund_function=tools.issue_refund_function,
+    )
+    template = Template.from_stack(stack)
+    template.has_resource_properties(
+        "AWS::BedrockAgentCore::Gateway",
+        {
+            "Name": GATEWAY_NAME,
+            "AuthorizerType": "AWS_IAM",
+        },
+    )
+    template.resource_count_is("AWS::BedrockAgentCore::GatewayTarget", 3)
+    raw = json.dumps(template.to_json())
+    assert "SEMANTIC" not in raw
+    for target_name, tool_name, _ in TOOL_TARGETS:
+        assert target_name in raw
+        assert tool_name in raw
+    assert "order-status___get_order_status" in raw or "McpToolNames" in raw
 
 
 def test_agentcore_stack_creates_http_runtime_with_short_idle(
