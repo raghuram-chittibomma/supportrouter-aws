@@ -84,7 +84,8 @@ See [`DECISIONS/`](DECISIONS/). Key ADRs: **007** (S3 Vectors), **008**
 (dormancy), **009** (deterministic confidence policy), **010** (refund approval
 lifecycle), **011** (structured observability events), **012** (guardrail
 boundaries), **013** (Lambda tool isolation), **014** (HTTP chat edge), **015**
-(reproducible chat Lambda runtime bundle), **021** (Bedrock prompt-cache wiring).
+(reproducible chat Lambda runtime bundle), **021** (Bedrock prompt-cache wiring),
+**024** (AgentCore Runtime dual-run stretch).
 
 Local runtime emits structured step traces with request `correlation_id` →
 `session_id` linkage. Token/cost fields are always present and stay
@@ -108,4 +109,9 @@ and synthetic fixtures (ADR-015).
 
 ## Future migration
 
-Keep tool contracts, KB corpus, routing table schema, and eval harness stable. Milestone 6 may host the agent graph on AgentCore Runtime and expose Lambda tools via MCP without changing domain logic.
+Keep tool contracts, KB corpus, routing table schema, and eval harness stable.
+Milestone **v0.6** (ADR-024): **dual-run** Bedrock AgentCore Runtime hosts the
+same LangGraph `run_agent` path behind `BedrockAgentCoreApp` (ARM64 container /
+ECR); API Gateway + chat Lambda remain the default edge. AgentCore Gateway MCP
+over the three tool Lambdas is optional. Destroy the AgentCore stack when
+dormant; do not claim AgentCore cost wins without a measured scorecard (#95).
