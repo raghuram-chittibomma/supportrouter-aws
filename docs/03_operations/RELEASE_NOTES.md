@@ -3,6 +3,20 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — AgentCore host-path spike (#92 / ADR-024)
+
+### Shipped
+
+- ADR-024: dual-run AgentCore Runtime wrapping existing `run_agent` contracts;
+  keep Api Lambda edge; Gateway MCP optional; SigV4 demo auth; us-east-1.
+- Implementation order: CDK Runtime (#94) → optional Gateway (#93) → smoke
+  eval / not-measured note (#95).
+
+### Cost note
+
+AgentCore Runtime/Gateway spend **not measured**. Published consumption pricing
+only; dormant months should destroy the AgentCore stack (ADR-008).
+
 ## v0.5.0 — Routing + platform hardening (2026-07-31)
 
 Cumulative release of milestones **v0.2–v0.5** on `main` after

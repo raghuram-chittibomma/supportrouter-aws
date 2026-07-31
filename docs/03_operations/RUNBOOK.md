@@ -406,6 +406,17 @@ Expect `routing_table_version` like `generated-from-<scorecard_id>`.
 DynamoDB publish is on-demand PutItem only (not measured as Bedrock). Cite
 routing quality/cost/latency only from the source scorecard + adopted artifact.
 
+## AgentCore Runtime (v0.6 stretch, ADR-024)
+
+**Status:** architecture decided; CDK/entrypoint not shipped until #94.
+
+- Dual-run: keep `SupportRouter-Api` chat Lambda; optional AgentCore Runtime
+  wraps the same `run_agent` contracts (`BedrockAgentCoreApp`, ARM64/ECR).
+- Gateway MCP for tool Lambdas is optional (#93), after Runtime MVP.
+- Invoke (once deployed): SigV4 `InvokeAgentRuntime` — details land with #94.
+- Dormancy: destroy the AgentCore stack when not demoing; do not claim cost
+  savings without a measured scorecard (#95).
+
 ## Cost guardrails
 
 - AWS Budget alert: **$20/month**, filtered by tag `Project=supportrouter` (ADR-008)
