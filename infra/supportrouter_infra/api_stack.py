@@ -147,6 +147,10 @@ class ApiStack(cdk.Stack):
         sessions = self._table("Sessions", "session_id")
         approvals = self._table("ApprovalRequests", "approval_id")
         routing_table = self._table("RoutingTable", "task_type")
+        # Exposed for dual-run AgentCore host (ADR-024 / SupportRouter-AgentCore).
+        self.sessions_table = sessions
+        self.approvals_table = approvals
+        self.routing_table = routing_table
 
         function_name = CHAT_FUNCTION_NAME
         log_group = logs.LogGroup(

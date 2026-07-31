@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import aws_cdk as cdk
 
+from supportrouter_infra.agentcore_stack import AgentCoreStack
 from supportrouter_infra.api_stack import ApiStack
 from supportrouter_infra.cost_guardrails_stack import CostGuardrailsStack
 from supportrouter_infra.eval_schedule_stack import EvalScheduleStack
@@ -34,10 +35,25 @@ CostGuardrailsStack(app, "SupportRouter-CostGuardrails", env=env)
 kb_stack = KnowledgeBaseStack(app, "SupportRouter-KnowledgeBase", env=env)
 guardrails_stack = GuardrailsStack(app, "SupportRouter-Guardrails", env=env)
 tools_stack = ToolsStack(app, "SupportRouter-Tools", env=env)
-ApiStack(
+api_stack = ApiStack(
     app,
     "SupportRouter-Api",
     env=env,
+    knowledge_base_id=kb_stack.knowledge_base_id,
+    guardrail_id=guardrails_stack.guardrail_id,
+    guardrail_version=guardrails_stack.guardrail_version,
+    get_order_status_function=tools_stack.get_order_status_function,
+    initiate_return_function=tools_stack.initiate_return_function,
+    issue_refund_function=tools_stack.issue_refund_function,
+)
+# Dual-run stretch host (ADR-024). Deploy explicitly; Api chat remains default.
+AgentCoreStack(
+    app,
+    "SupportRouter-AgentCore",
+    env=env,
+    sessions_table=api_stack.sessions_table,
+    approvals_table=api_stack.approvals_table,
+    routing_table=api_stack.routing_table,
     knowledge_base_id=kb_stack.knowledge_base_id,
     guardrail_id=guardrails_stack.guardrail_id,
     guardrail_version=guardrails_stack.guardrail_version,
