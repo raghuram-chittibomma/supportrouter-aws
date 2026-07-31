@@ -19,3 +19,6 @@ SupportRouter must route each task type to an optimal Bedrock model on quality, 
 - Deterministic lookup at runtime (no LLM in the router).
 - Exact Bedrock model IDs tracked in config/scorecards, not hard-coded claims in README.
 - Open question issue for account-available model IDs.
+- **Implemented (file path):** ADR-022 defines quality/p95 defaults and
+  `evals.generate_routing_policy` for offline generation from scorecards.
+  DynamoDB publish remains deferred.

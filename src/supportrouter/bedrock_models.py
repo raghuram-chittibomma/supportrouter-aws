@@ -38,6 +38,41 @@ _USD_PER_1K_TOKENS = {
     },
 }
 
+# Map logical candidates / inference profiles back to routing-table model IDs.
+_INFERENCE_TO_ROUTING = {
+    profile: routing
+    for routing, profile in ROUTING_TO_INFERENCE_PROFILE.items()
+    if not routing.startswith("logical:")
+}
+_LOGICAL_TO_ROUTING = {
+    "logical:nova-micro": "amazon.nova-micro",
+    "logical:nova-lite": "amazon.nova-lite",
+    "logical:claude-haiku": "anthropic.claude-haiku",
+}
+
+
+def to_routing_model_id(model_id: str) -> str:
+    """Normalize logical / inference / routing IDs to routing-table ``model_id``."""
+    key = (model_id or "").strip()
+    if not key:
+        raise ValueError("model_id is required")
+    if key in _LOGICAL_TO_ROUTING:
+        return _LOGICAL_TO_ROUTING[key]
+    if key in _INFERENCE_TO_ROUTING:
+        return _INFERENCE_TO_ROUTING[key]
+    if key in ROUTING_TO_INFERENCE_PROFILE and not key.startswith("logical:"):
+        return key
+    raise ValueError(f"Cannot map model_id '{model_id}' to a routing-table ID")
+
+
+def published_input_cost_per_1k(model_id: str) -> float | None:
+    """Published on-demand input USD per 1K tokens for a routing or profile ID."""
+    profile = resolve_inference_profile(model_id)
+    rates = _USD_PER_1K_TOKENS.get(profile)
+    if rates is None:
+        return None
+    return rates["input"]
+
 
 def resolve_inference_profile(model_id: str) -> str:
     key = (model_id or "").strip()

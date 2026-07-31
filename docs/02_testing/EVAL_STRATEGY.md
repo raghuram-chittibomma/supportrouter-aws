@@ -67,6 +67,19 @@ remain mandatory; judge scores cannot rescue a programmatic failure.
 
 `scorecard_id` → `dataset_version` + `prompt_version` + `model_ids` + `judge_version` → informs `routing_table_version`.
 
+Offline generation (ADR-022):
+
+```powershell
+python -m evals.generate_routing_policy `
+  --scorecard evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json `
+  --seed data/sample/routing_table.json `
+  --out /tmp/routing_table.generated.json
+```
+
+Refuses incomplete/local-stub scorecards unless `--allow-incomplete`. Does not
+overwrite the seed path unless `--out` points there. Cite routing claims only
+from the source scorecard + generated artifact.
+
 ## Anti-leakage
 
 Golden eval inputs must never be injected into production prompts or few-shot examples.
