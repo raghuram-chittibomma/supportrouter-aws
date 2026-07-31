@@ -167,7 +167,12 @@ def select_route(
         if c.get("p95_latency_ms") is not None
         and float(c["p95_latency_ms"]) <= p95_latency_cap_ms
     ]
-    pool = under_cap if under_cap else list(candidates)
+    latency_cap_relaxed = False
+    if under_cap:
+        pool = under_cap
+    else:
+        pool = list(candidates)
+        latency_cap_relaxed = True
     best_quality = max(float(c["quality_score"]) for c in pool)
     floor = best_quality * (1.0 - quality_tolerance)
     eligible = [c for c in pool if float(c["quality_score"]) >= floor]
@@ -183,7 +188,10 @@ def select_route(
         # Cheapest first; then higher quality; then stable model_id.
         return (float(cost), -float(c["quality_score"]), str(c["model_id"]))
 
-    return sorted(eligible, key=sort_key)[0]
+    chosen = sorted(eligible, key=sort_key)[0]
+    result = dict(chosen)
+    result["latency_cap_relaxed"] = latency_cap_relaxed
+    return result
 
 
 def generate_routing_table(
@@ -224,6 +232,7 @@ def generate_routing_table(
             {
                 "task_type": task_type,
                 "selected": chosen["model_id"],
+                "latency_cap_relaxed": bool(chosen.get("latency_cap_relaxed")),
                 "candidates": candidates,
             }
         )
