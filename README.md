@@ -9,6 +9,7 @@ engineering on AWS—not a toy chatbot README.
 
 | Start here | Link |
 |------------|------|
+| **15–20 min demo** (AWS + AI engineering) | [`docs/00_project/DEMO_SCRIPT_AWS_AI.md`](docs/00_project/DEMO_SCRIPT_AWS_AI.md) |
 | 5–10 min portfolio walkthrough | [`docs/00_project/PORTFOLIO_WALKTHROUGH.md`](docs/00_project/PORTFOLIO_WALKTHROUGH.md) |
 | AWS architecture diagrams (AI + AWS) | [`docs/01_architecture/ARCHITECTURE_AWS_DIAGRAM.md`](docs/01_architecture/ARCHITECTURE_AWS_DIAGRAM.md) |
 | Releases (v0.1 → v0.6) | [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases) |
@@ -89,6 +90,7 @@ ops polish unless new issues are filed.
 | Doc | Why |
 |-----|-----|
 | [`docs/00_project/AI_ORCHESTRATOR_BRIEF.md`](docs/00_project/AI_ORCHESTRATOR_BRIEF.md) | Initiation intent |
+| [`docs/00_project/DEMO_SCRIPT_AWS_AI.md`](docs/00_project/DEMO_SCRIPT_AWS_AI.md) | Timed AWS + AI eng demo talk track |
 | [`docs/00_project/PRODUCT_BRIEF.md`](docs/00_project/PRODUCT_BRIEF.md) | Personas & workflows |
 | [`docs/01_architecture/ARCHITECTURE.md`](docs/01_architecture/ARCHITECTURE.md) | Architecture narrative |
 | [`docs/01_architecture/DECISIONS/`](docs/01_architecture/DECISIONS/) | ADRs (supersede, don’t rewrite) |

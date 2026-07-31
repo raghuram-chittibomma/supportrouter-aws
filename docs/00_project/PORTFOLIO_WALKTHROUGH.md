@@ -3,6 +3,10 @@
 For **Alex** (hiring manager): how to audit SupportRouter without reading every
 PR. Synthetic VoltEdge data only; cite metrics only from linked scorecards.
 
+**Live demo (15–20 min, AWS + AI engineering talk track):** use
+[`DEMO_SCRIPT_AWS_AI.md`](DEMO_SCRIPT_AWS_AI.md) instead—this file is the quiet
+repo-audit path; that script is the spoken demo.
+
 ## 1. Front door (2 min)
 
 1. Skim [`README.md`](../../README.md) — problem, AI engineering themes, measured
