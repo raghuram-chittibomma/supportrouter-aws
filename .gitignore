@@ -31,3 +31,4 @@ Thumbs.db
 evals/scorecards/*.json
 !evals/scorecards/scorecard-v0.1-live-bedrock-*.json
 !evals/scorecards/scorecard-v0.1-prompt-cache-*.json
+!evals/scorecards/scorecard-v0.6-agentcore-*.json

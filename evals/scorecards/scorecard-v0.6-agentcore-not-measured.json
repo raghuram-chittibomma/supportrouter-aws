@@ -1,0 +1,46 @@
+{
+  "schema_version": "v0.1",
+  "scorecard_id": "scorecard-v0.6-agentcore-not-measured",
+  "dataset_version": "v0.1-golden",
+  "prompt_version": "n/a-agentcore-host-smoke",
+  "judge_version": "n/a",
+  "model_ids": [],
+  "execution_mode": "not_run",
+  "host_path": "agentcore_runtime_dual_run",
+  "cache_enabled": false,
+  "cache_status": "not_configured",
+  "created_at": "2026-07-31T17:30:00+00:00",
+  "incomplete_reasons": [
+    "AgentCore Runtime / Gateway stacks are opt-in and were not invoked for a live golden suite in this milestone.",
+    "No Bedrock Converse candidate fan-out or LLM-as-judge run was executed on the AgentCore host.",
+    "Local adapter smoke (handle_agentcore_payload → run_agent) proves host wiring only; it is not a measured quality/cost scorecard."
+  ],
+  "summary": {
+    "candidate_count": 0,
+    "candidates_executed": false,
+    "task_types": ["faq_policy"],
+    "scenario_count": 1,
+    "scenario_runs": 0,
+    "programmatic_passes": 0,
+    "programmatic_pass_rate": null,
+    "judge_completed": false,
+    "overall_pass": null,
+    "smoke_scenario_id": "faq-policy-001",
+    "smoke_path": "local_agentcore_adapter"
+  },
+  "cost": {
+    "status": "not_measured",
+    "basis": "no AgentCore Runtime session or Gateway MCP invoke recorded for this artifact",
+    "total_usd": null
+  },
+  "quality": {
+    "status": "not_measured",
+    "note": "Do not claim AgentCore host quality equals Lambda chat or live Bedrock scorecards without a new measured run."
+  },
+  "results": [],
+  "notes": [
+    "Evidence artifact for issue #95 / ADR-024: explicit decline to claim AgentCore quality or cost.",
+    "Documented smoke path: RUNBOOK AgentCore section + tests/test_agentcore_smoke.py (local).",
+    "Optional future: deploy SupportRouter-AgentCore, InvokeAgentRuntime with faq-policy-001 / ord-status-001, then publish a measured scorecard."
+  ]
+}
