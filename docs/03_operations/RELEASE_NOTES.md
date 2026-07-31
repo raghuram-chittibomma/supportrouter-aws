@@ -3,6 +3,18 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — Portfolio demo talk track (#107)
+
+### Shipped
+
+- [`docs/00_project/DEMO_SCRIPT_AWS_AI.md`](../../docs/00_project/DEMO_SCRIPT_AWS_AI.md)
+  — timed (~15–20 min) demo: AWS runtime → AI engineering loop → ops; show/say/
+  do-not-claim lines; linked from README + portfolio walkthrough.
+
+### Cost note
+
+Docs only (not measured).
+
 ## Unreleased — Portfolio front door (#105)
 
 ### Shipped
