@@ -146,6 +146,7 @@ class ApiStack(cdk.Stack):
 
         sessions = self._table("Sessions", "session_id")
         approvals = self._table("ApprovalRequests", "approval_id")
+        routing_table = self._table("RoutingTable", "task_type")
 
         function_name = CHAT_FUNCTION_NAME
         log_group = logs.LogGroup(
@@ -177,6 +178,13 @@ class ApiStack(cdk.Stack):
                     "dynamodb:PutItem",
                 ],
                 resources=hitl_table_arns,
+            )
+        )
+        role.add_to_policy(
+            iam.PolicyStatement(
+                sid="RoutingTableRead",
+                actions=["dynamodb:GetItem"],
+                resources=[routing_table.table_arn],
             )
         )
         # AWS runtime mode: Bedrock Converse + KB retrieve (service-scoped ARNs).
@@ -237,6 +245,7 @@ class ApiStack(cdk.Stack):
             "PYTHONPATH": "/var/task/src:/var/task",
             "SESSIONS_TABLE_NAME": sessions.table_name,
             "APPROVALS_TABLE_NAME": approvals.table_name,
+            "SUPPORTROUTER_ROUTING_TABLE_NAME": routing_table.table_name,
             "SUPPORTROUTER_RUNTIME_MODE": "local",
         }
         if knowledge_base_id:
@@ -324,6 +333,7 @@ class ApiStack(cdk.Stack):
         cdk.CfnOutput(self, "ChatRoute", value=f"POST {CHAT_ROUTE}")
         cdk.CfnOutput(self, "SessionsTableName", value=sessions.table_name)
         cdk.CfnOutput(self, "ApprovalRequestsTableName", value=approvals.table_name)
+        cdk.CfnOutput(self, "RoutingTableName", value=routing_table.table_name)
 
     def _table(self, logical_id: str, partition_key: str) -> dynamodb.Table:
         return dynamodb.Table(

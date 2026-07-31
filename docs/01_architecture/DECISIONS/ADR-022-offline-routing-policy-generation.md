@@ -2,15 +2,15 @@
 
 ## Status
 
-Accepted (implements ADR-003 milestone-2 path; file-based only)
+Accepted (implements ADR-003 milestone-2 path; file seed + adopt)
 
 ## Context
 
 ADR-003 defines candidate selection (cheapest within 5% of best quality under a
 p95 latency cap) but leaves the numeric quality formula and latency default
-unspecified. Runtime still loads `data/sample/routing_table.json`; DynamoDB
-publish remains deferred. Priya needs an offline, testable transform from a
-measured scorecard to a candidate routing table without Bedrock spend.
+unspecified. Priya needs an offline, testable transform from a measured
+scorecard to a candidate routing table without Bedrock spend. DynamoDB publish
+and AWS runtime lookup are in [ADR-023](ADR-023-dynamodb-routing-table.md).
 
 ## Decision
 
@@ -31,8 +31,7 @@ measured scorecard to a candidate routing table without Bedrock spend.
 7. **Adopt:** `--adopt` writes a runtime-ready table (no selection audit).
    Overwriting `data/sample/routing_table.json` requires `--adopt --yes`.
 8. **CLI:** `python -m evals.generate_routing_policy`.
-
-DynamoDB RoutingTable publish is out of scope (follow-on).
+9. **DynamoDB publish:** see [ADR-023](ADR-023-dynamodb-routing-table.md).
 
 ## Consequences
 
