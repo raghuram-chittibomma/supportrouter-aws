@@ -11,6 +11,7 @@ from evals.generate_routing_policy import (
     generate_routing_table,
     main,
     select_route,
+    to_runtime_table,
     validate_scorecard_for_policy,
 )
 from supportrouter.bedrock_models import to_routing_model_id
@@ -175,3 +176,77 @@ def test_generate_routing_table_writes_version_and_keeps_seed_gaps(tmp_path: Pat
     assert main(["--scorecard", str(sc_path), "--out", str(out)]) == 0
     written = json.loads(out.read_text(encoding="utf-8"))
     assert written["routes"]["order_status"]["model_id"] == "amazon.nova-micro"
+    assert "selection" in written
+
+
+def test_adopt_writes_runtime_table_without_selection(tmp_path: Path):
+    scorecard = _scorecard_fixture()
+    sc_path = tmp_path / "sc.json"
+    out = tmp_path / "adopted.json"
+    sc_path.write_text(json.dumps(scorecard), encoding="utf-8")
+    assert (
+        main(
+            [
+                "--scorecard",
+                str(sc_path),
+                "--out",
+                str(out),
+                "--adopt",
+            ]
+        )
+        == 0
+    )
+    written = json.loads(out.read_text(encoding="utf-8"))
+    assert "selection" not in written
+    assert written["source_scorecard_id"] == "scorecard-fixture-routing"
+    assert set(written["routes"]) == {"order_status"}
+
+
+def test_adopt_to_canonical_seed_requires_yes(tmp_path: Path, monkeypatch):
+    scorecard = _scorecard_fixture()
+    sc_path = tmp_path / "sc.json"
+    sc_path.write_text(json.dumps(scorecard), encoding="utf-8")
+    fake_seed = tmp_path / "routing_table.json"
+    monkeypatch.setattr(
+        "evals.generate_routing_policy.DEFAULT_SEED_PATH",
+        fake_seed,
+    )
+    with pytest.raises(SystemExit, match="without --yes"):
+        main(
+            [
+                "--scorecard",
+                str(sc_path),
+                "--out",
+                str(fake_seed),
+                "--adopt",
+            ]
+        )
+    assert (
+        main(
+            [
+                "--scorecard",
+                str(sc_path),
+                "--out",
+                str(fake_seed),
+                "--adopt",
+                "--yes",
+            ]
+        )
+        == 0
+    )
+    assert fake_seed.is_file()
+    assert "selection" not in json.loads(fake_seed.read_text(encoding="utf-8"))
+
+
+def test_to_runtime_table_drops_selection():
+    slim = to_runtime_table(
+        {
+            "routing_table_version": "v",
+            "policy": "p",
+            "source_scorecard_id": "s",
+            "selection": [{"task_type": "x"}],
+            "routes": {"order_status": {"model_id": "amazon.nova-micro"}},
+        }
+    )
+    assert "selection" not in slim
+    assert slim["routes"]["order_status"]["model_id"] == "amazon.nova-micro"

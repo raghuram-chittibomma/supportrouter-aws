@@ -23,7 +23,9 @@ def test_route_all_seeded_task_types(task_type, model_id):
     decision = route(task_type)
     assert decision.task_type == task_type
     assert decision.model_id == model_id
-    assert decision.routing_table_version == "seed-v0.1.0"
+    assert decision.routing_table_version == (
+        "generated-from-scorecard-v0.1-live-bedrock-2026-07-29"
+    )
 
 
 def test_classify_then_route_demo_path():

@@ -25,6 +25,29 @@ from supportrouter.bedrock_models import (
 DEFAULT_QUALITY_TOLERANCE = 0.05  # within 5% of best (ADR-003)
 DEFAULT_P95_LATENCY_CAP_MS = 12000.0  # NFR: tools path < 12s
 QUALITY_FORMULA = "mean(judge faithfulness/helpfulness/policy_adherence) / 5.0"
+DEFAULT_SEED_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "sample" / "routing_table.json"
+)
+RUNTIME_TABLE_KEYS = (
+    "routing_table_version",
+    "policy",
+    "source_scorecard_id",
+    "quality_formula",
+    "quality_tolerance",
+    "p95_latency_cap_ms",
+    "routes",
+)
+
+
+def to_runtime_table(table: dict[str, Any]) -> dict[str, Any]:
+    """Drop selection audit fields for a seed-/router-ready routing table."""
+    slim: dict[str, Any] = {}
+    for key in RUNTIME_TABLE_KEYS:
+        if key in table:
+            slim[key] = table[key]
+    if "routes" not in slim:
+        raise ValueError("routing table requires routes")
+    return slim
 
 
 def _percentile(values: Sequence[float], pct: float) -> float:
@@ -286,6 +309,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=DEFAULT_P95_LATENCY_CAP_MS,
         help="Drop candidates above this p95 wall time (default 12000).",
     )
+    parser.add_argument(
+        "--adopt",
+        action="store_true",
+        help=(
+            "Write a runtime-/seed-ready table (omit selection audit). "
+            "Required together with --yes when --out is the canonical seed file."
+        ),
+    )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Confirm overwrite when --adopt targets data/sample/routing_table.json.",
+    )
     args = parser.parse_args(argv)
 
     scorecard = json.loads(args.scorecard.read_text(encoding="utf-8"))
@@ -301,14 +337,32 @@ def main(argv: Sequence[str] | None = None) -> int:
         p95_latency_cap_ms=args.p95_latency_cap_ms,
         seed_table=seed,
     )
+    if args.adopt:
+        table = to_runtime_table(table)
+
+    out_resolved = args.out.resolve()
+    seed_resolved = DEFAULT_SEED_PATH.resolve()
+    if args.adopt and out_resolved == seed_resolved and not args.yes:
+        raise SystemExit(
+            f"Refusing to overwrite canonical seed {seed_resolved} without --yes. "
+            "Inspect the generated table first, then re-run with --adopt --yes."
+        )
+    if out_resolved == seed_resolved and not args.adopt:
+        raise SystemExit(
+            f"Refusing to write full generator output (with selection audit) to "
+            f"canonical seed {seed_resolved}. Pass --adopt --yes after inspection."
+        )
+
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(table, indent=2) + "\n", encoding="utf-8")
     print(
         json.dumps(
             {
                 "wrote": str(args.out),
+                "adopted": bool(args.adopt),
                 "routing_table_version": table["routing_table_version"],
                 "task_types": sorted(table["routes"]),
+                "source_scorecard_id": table.get("source_scorecard_id"),
             },
             indent=2,
         )

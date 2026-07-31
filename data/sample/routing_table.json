@@ -1,23 +1,27 @@
 {
-  "routing_table_version": "seed-v0.1.0",
-  "policy": "Seeded manually for v0.1; later produced from eval scorecards (ADR-003).",
+  "routing_table_version": "generated-from-scorecard-v0.1-live-bedrock-2026-07-29",
+  "policy": "Generated from scorecard scorecard-v0.1-live-bedrock-2026-07-29 via ADR-003/ADR-022: cheapest model within 5% of best quality (mean(judge faithfulness/helpfulness/policy_adherence) / 5.0), subject to p95_latency_cap_ms=12000. Offline transform; cost not re-measured.",
+  "source_scorecard_id": "scorecard-v0.1-live-bedrock-2026-07-29",
+  "quality_formula": "mean(judge faithfulness/helpfulness/policy_adherence) / 5.0",
+  "quality_tolerance": 0.05,
+  "p95_latency_cap_ms": 12000.0,
   "routes": {
     "faq_policy": {
       "model_id": "amazon.nova-micro",
-      "quality_score": 0.82,
-      "cost_per_1k_tokens": 0.000035,
-      "p95_latency_ms": 900
+      "quality_score": 1.0,
+      "cost_per_1k_tokens": 3.5e-05,
+      "p95_latency_ms": 890.228
     },
     "order_status": {
       "model_id": "amazon.nova-micro",
-      "quality_score": 0.88,
-      "cost_per_1k_tokens": 0.000035,
-      "p95_latency_ms": 800
+      "quality_score": 1.0,
+      "cost_per_1k_tokens": 3.5e-05,
+      "p95_latency_ms": 2516.489
     },
     "return_request": {
       "model_id": "amazon.nova-lite",
       "quality_score": 0.86,
-      "cost_per_1k_tokens": 0.00006,
+      "cost_per_1k_tokens": 6e-05,
       "p95_latency_ms": 1100
     },
     "refund_request": {
@@ -29,7 +33,7 @@
     "product_question": {
       "model_id": "amazon.nova-lite",
       "quality_score": 0.85,
-      "cost_per_1k_tokens": 0.00006,
+      "cost_per_1k_tokens": 6e-05,
       "p95_latency_ms": 1000
     },
     "unknown": {
