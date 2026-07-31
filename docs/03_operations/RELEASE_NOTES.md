@@ -3,6 +3,22 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
+## Unreleased — DynamoDB RoutingTable publish + lookup (#88 / ADR-023)
+
+### Shipped
+
+- Api stack: pay-per-request `supportrouter-routingtable` (PK `task_type`),
+  chat env `SUPPORTROUTER_ROUTING_TABLE_NAME`, output `RoutingTableName`.
+- Chat role: `GetItem` on RoutingTable only; publish via
+  `python scripts/publish_routing_table.py` (caller credentials).
+- `route()` prefers DynamoDB when the env var is set; JSON seed remains the
+  local fallback.
+
+### Cost note
+
+On-demand DynamoDB GetItem/PutItem only (not measured as Bedrock). Completes
+v0.2 routing path after #84 / #86.
+
 ## Unreleased — Adopt generated routing table (#86)
 
 ### Shipped

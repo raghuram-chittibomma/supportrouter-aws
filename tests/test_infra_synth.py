@@ -349,6 +349,9 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
                     "APPROVALS_TABLE_NAME": {
                         "Ref": Match.any_value(),
                     },
+                    "SUPPORTROUTER_ROUTING_TABLE_NAME": {
+                        "Ref": Match.any_value(),
+                    },
                     "SUPPORTROUTER_RUNTIME_MODE": "local",
                 },
             },
@@ -418,8 +421,18 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
     assert "bedrock:Converse" in policy_serialized
     assert "inference-profile" in policy_serialized
 
-    # Sessions + ApprovalRequests tables (on-demand, destroyable).
-    template.resource_count_is("AWS::DynamoDB::Table", 2)
+    # HITL: GetItem+PutItem on Sessions/Approvals; RoutingTable: GetItem only.
+    hitl_write = next(
+        s for s in statements if s.get("Sid") == "HitlSessionApprovalAccess"
+    )
+    assert set(hitl_write["Action"]) == {"dynamodb:GetItem", "dynamodb:PutItem"}
+    routing_read = next(s for s in statements if s.get("Sid") == "RoutingTableRead")
+    assert routing_read["Action"] == "dynamodb:GetItem"
+    assert "dynamodb:PutItem" not in json.dumps(routing_read)
+    assert "dynamodb:Scan" not in policy_serialized
+
+    # Sessions + ApprovalRequests + RoutingTable (on-demand, destroyable).
+    template.resource_count_is("AWS::DynamoDB::Table", 3)
     template.has_resource_properties(
         "AWS::DynamoDB::Table",
         {
@@ -432,6 +445,13 @@ def test_api_stack_uses_throttled_http_api_and_least_privilege(
         {
             "BillingMode": "PAY_PER_REQUEST",
             "KeySchema": [{"AttributeName": "approval_id", "KeyType": "HASH"}],
+        },
+    )
+    template.has_resource_properties(
+        "AWS::DynamoDB::Table",
+        {
+            "BillingMode": "PAY_PER_REQUEST",
+            "KeySchema": [{"AttributeName": "task_type", "KeyType": "HASH"}],
         },
     )
 

@@ -77,8 +77,10 @@ python -m evals.generate_routing_policy `
 ```
 
 Refuses incomplete/local-stub scorecards unless `--allow-incomplete`. Does not
-overwrite the seed path unless `--out` points there. Cite routing claims only
-from the source scorecard + generated artifact.
+overwrite the seed path unless `--out` points there with `--adopt --yes`. After
+adopt, publish to DynamoDB with `python scripts/publish_routing_table.py`
+(ADR-023). Cite routing claims only from the source scorecard + adopted
+artifact.
 
 ## Anti-leakage
 

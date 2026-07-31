@@ -121,6 +121,12 @@ resolved path. See [ADR-009](DECISIONS/ADR-009-deterministic-confidence-policy.m
 
 ## Routing table (DynamoDB `RoutingTable`)
 
+Table name: `supportrouter-routingtable` (Api stack). Operators publish with
+`python scripts/publish_routing_table.py` after seed adopt (ADR-023). Chat
+Lambda reads via `GetItem` on `task_type` when
+`SUPPORTROUTER_ROUTING_TABLE_NAME` is set; otherwise the JSON seed under
+`data/sample/routing_table.json` is used.
+
 | Attribute | Type | Notes |
 |-----------|------|--------|
 | `task_type` | S (PK) | |

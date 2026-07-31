@@ -342,7 +342,7 @@ cost, and overall pass as incomplete — do not use them for routing or release
 claims. Live runs (`--live`, ADR-016) record executed candidates, completed
 judge scores, and token-derived cost estimates.
 
-## Routing policy from scorecards (ADR-003 / ADR-022)
+## Routing policy from scorecards (ADR-003 / ADR-022 / ADR-023)
 
 Offline transform (no Bedrock). Prefer a measured live scorecard.
 
@@ -374,9 +374,26 @@ python -m evals.generate_routing_policy `
 `--adopt --yes` is required to overwrite `data/sample/routing_table.json`.
 Task types absent from the scorecard stay on the seed (keep-seed).
 
-### 3. Verify
+### 3. Publish to DynamoDB (AWS chat path, ADR-023)
+
+After deploy of `SupportRouter-Api` (creates `supportrouter-routingtable`) and
+after adopt (or whenever the seed changes):
 
 ```powershell
+python scripts/publish_routing_table.py
+# or: python scripts/publish_routing_table.py --routing-table data/sample/routing_table.json
+```
+
+Resolves the table name from `SUPPORTROUTER_ROUTING_TABLE_NAME`, Api stack
+output `RoutingTableName`, or `--table-name`. Uses caller credentials
+(`PutItem`); the chat Lambda role is **GetItem-only**.
+
+Local Gradio/CLI without that env var still reads the JSON seed.
+
+### 4. Verify
+
+```powershell
+# File path (no SUPPORTROUTER_ROUTING_TABLE_NAME):
 python -c "from supportrouter.router import route; print(route('order_status'))"
 ```
 
@@ -385,7 +402,8 @@ Expect `routing_table_version` like `generated-from-<scorecard_id>`.
 - Refuses incomplete/local-stub scorecards unless `--allow-incomplete`.
 - Optional knobs: `--quality-tolerance 0.05`, `--p95-latency-cap-ms 12000`.
 
-**Cost note:** generation/adopt is an offline JSON transform (not measured). Cite
+**Cost note:** generation/adopt is an offline JSON transform (not measured).
+DynamoDB publish is on-demand PutItem only (not measured as Bedrock). Cite
 routing quality/cost/latency only from the source scorecard + adopted artifact.
 
 ## Cost guardrails
