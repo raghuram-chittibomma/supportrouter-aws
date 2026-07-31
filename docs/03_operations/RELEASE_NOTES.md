@@ -3,88 +3,39 @@
 Canonical releases: [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases).
 This file mirrors **measured** results only. Unmeasured claims stay explicit.
 
-## Unreleased — DynamoDB RoutingTable publish + lookup (#88 / ADR-023)
+## v0.5.0 — Routing + platform hardening (2026-07-31)
 
-### Shipped
+Cumulative release of milestones **v0.2–v0.5** on `main` after
+[v0.1.0](https://github.com/raghuram-chittibomma/supportrouter-aws/releases/tag/v0.1.0).
+Delivery order on GitHub was interleaved; this tag is the first post-v0.1.0
+GitHub Release that includes all of that work.
 
-- Api stack: pay-per-request `supportrouter-routingtable` (PK `task_type`),
-  chat env `SUPPORTROUTER_ROUTING_TABLE_NAME`, output `RoutingTableName`.
-- Chat role: `GetItem` on RoutingTable only; publish via
-  `python scripts/publish_routing_table.py` (caller credentials).
-- `route()` prefers DynamoDB when the env var is set; JSON seed remains the
-  local fallback.
+### v0.2 — Routing policy generator
 
-### Cost note
+- Offline `python -m evals.generate_routing_policy` (ADR-022) from measured
+  scorecards; `--adopt --yes` for the JSON seed.
+- DynamoDB `supportrouter-routingtable` +
+  `python scripts/publish_routing_table.py` + chat `GetItem` lookup (ADR-023 /
+  #88). File seed remains the local fallback.
+- Seed version in tree:
+  `generated-from-scorecard-v0.1-live-bedrock-2026-07-29`.
 
-On-demand DynamoDB GetItem/PutItem only (not measured as Bedrock). Completes
-v0.2 routing path after #84 / #86.
+**Cost note:** generate/adopt offline (not measured as Bedrock). DynamoDB
+publish is on-demand PutItem only (not measured as Bedrock). Routing
+quality/cost/latency claims must cite the source scorecard.
 
-## Unreleased — Adopt generated routing table (#86)
+### v0.3 — Guardrails + draft honesty + retrieval relevance
 
-### Shipped
+- Managed Bedrock Guardrails in the runtime graph (#70).
+- Draft honesty: stop overclaiming refund/return execution (#73).
+- Escalate when KB evidence is weak (#74).
 
-- `--adopt --yes` writes a runtime-ready routing table (no selection audit) and
-  is required to overwrite `data/sample/routing_table.json`.
-- Seed adopted from
-  [`scorecard-v0.1-live-bedrock-2026-07-29`](../../evals/scorecards/scorecard-v0.1-live-bedrock-2026-07-29.json)
-  (`routing_table_version=generated-from-scorecard-v0.1-live-bedrock-2026-07-29`).
-  Model IDs for covered + keep-seed tasks match the prior seed; version now
-  traces to the measured scorecard.
+**Cost note:** Guardrail ApplyGuardrail tokens/calls not separately scored in
+this release; cite live scorecards for Bedrock spend.
 
-### Cost note
+### v0.4 — Prompt caching + observability
 
-Offline adopt only (not measured).
-
-## Unreleased — Offline routing-policy generator (#84 / ADR-022)
-
-### Shipped
-
-- `python -m evals.generate_routing_policy` applies ADR-003 selection
-  (cheapest within 5% of best quality under a p95 latency cap) from a measured
-  scorecard to a candidate routing-table JSON.
-- Incomplete/local-stub scorecards refused by default; seed passthrough for
-  uncovered task types; seed file not overwritten unless `--out` points at it.
-
-### Cost note
-
-Offline transform only (not measured). Routing claims must cite the source
-scorecard (e.g. `scorecard-v0.1-live-bedrock-2026-07-29`).
-
-## Unreleased — EvalSchedule opt-in (#75)
-
-### Shipped
-
-- `SupportRouter-EvalSchedule` deployed with schedule **disabled** by default
-  (no EventBridge rule; stub Step Functions + 14-day log group only).
-- RUNBOOK: manual harness preferred; enable/disable via
-  `enable_reeval_schedule`; teardown names this stack; cost risk called out.
-
-### Cost note
-
-Zero Bedrock from this stack while the schedule is off. Enabling the weekly
-rule is intentional and can incur eval/judge tokens once the stub targets a
-live harness — measure before claiming. Prefer `python -m evals.harness [--live]`
-for on-demand runs.
-
-## Unreleased — Observability dashboards (#71)
-
-### Shipped
-
-- `SupportRouter-Observability`: ≤3 CloudWatch dashboards with Lambda/Bedrock
-  metric widgets, 14-day log groups, chat error/throttle alarms (no SNS).
-- Chat Lambda activates `LoggingTraceSink` so structured traces land in
-  `/aws/lambda/supportrouter-chat`. Dedicated agent/evals log groups remain
-  reserved (documented gap).
-
-### Cost note
-
-Dashboards + 14-day retention are dormancy-safe idle cost; ingestion scales with
-traffic. No Bedrock spend from this stack alone. Dollar budget remains
-`SupportRouter-CostGuardrails` ($20/mo).
-
-## Unreleased — Prompt caching measurement (#72)
-
-### Measured metrics
+#### Measured metrics (#72)
 
 | Metric | Value | Evidence |
 |--------|-------|----------|
@@ -94,20 +45,45 @@ traffic. No Bedrock spend from this stack alone. Dollar budget remains
 
 Basis: Haiku 4.5 on-demand rates with cache write/read pricing; uncached-equivalent prices all input tokens at the full input rate (ADR-021).
 
-### Explicitly not measured
+#### Explicitly not measured
 
 | Metric | Status |
 |--------|--------|
 | Runtime chat drafting cache savings | not measured (depends on AWS draft traffic within TTL) |
 | Conversation-history caching | deferred (ADR-005 / ADR-021) |
 
+#### Observability (#71)
+
+- `SupportRouter-Observability`: ≤3 CloudWatch dashboards with Lambda/Bedrock
+  metric widgets, 14-day log groups, chat error/throttle alarms (no SNS).
+- Chat Lambda `LoggingTraceSink` → `/aws/lambda/supportrouter-chat`.
+
+**Cost note:** Dashboards + 14-day retention are dormancy-safe idle cost;
+ingestion scales with traffic. No Bedrock spend from Observability alone.
+Dollar budget remains `SupportRouter-CostGuardrails` ($20/mo).
+
+### v0.5 — EvalSchedule opt-in (#75)
+
+- `SupportRouter-EvalSchedule` deployed with schedule **disabled** by default
+  (no EventBridge rule; stub Step Functions + 14-day log group only).
+- Prefer `python -m evals.harness [--live]`; enable weekly only with
+  `enable_reeval_schedule=true`.
+
+**Cost note:** Zero Bedrock from this stack while the schedule is off.
+
+### Release-readiness notes
+
+- Milestones v0.2–v0.5: **0 open issues** (closed on GitHub).
+- Synthetic data only; no real customer content.
+- Next planned stretch: milestone **v0.6 AgentCore / MCP** (empty until scoped).
+- Cost note for this release process: **not measured** beyond linked scorecards.
+
 ## v0.1.0 — Eval-Routed Agent Demo (2026-07-29)
 
 Technical delivery for milestone **v0.1 Eval-Routed Agent Demo**: classify →
 route → retrieve/tools → draft → confidence → HITL, plus a measured live
 Bedrock eval scorecard. Chat drafting remains a **local stub** (no Bedrock
-invoke on the chat Lambda). Product walkthrough stories (#44–#50) are tracked
-separately for demo acceptance.
+invoke on the chat Lambda) unless a later runtime mode enables it.
 
 ### Measured metrics
 
@@ -126,7 +102,7 @@ separately for demo acceptance.
 |--------|--------|
 | Autonomous resolution rate (production-like traffic) | not measured |
 | Cost per conversation (runtime chat drafting) | not measured (local stub) |
-| Prompt-caching savings | see Unreleased (#72) measured scorecard; v0.1.0 release assumed `cache_enabled=false` |
+| Prompt-caching savings | see **v0.5.0** (#72) measured scorecard; v0.1.0 assumed `cache_enabled=false` |
 | Idle cost (dormant month) | estimated ~$0–2 (ADR-008; not a billing extract) |
 
 ### What shipped
@@ -138,10 +114,11 @@ separately for demo acceptance.
 
 ### Release-readiness notes
 
-- Implementation issues for the technical demo path are closed; open milestone items are product stories (#44–#50) for walkthrough acceptance (deferred from this release tag).
+- Implementation issues for the technical demo path are closed.
 - Synthetic data only; no real customer content.
 - Cost note for this release process: **not measured** beyond the linked scorecard token estimate.
 
 ## Prior notes
 
-Earlier “Unreleased / dormancy-safe revision” content is superseded by **v0.1.0** above.
+Earlier “Unreleased / dormancy-safe revision” content is superseded by **v0.1.0**
+and **v0.5.0** above.

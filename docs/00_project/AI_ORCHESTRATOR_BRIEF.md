@@ -97,14 +97,16 @@ Durable docs: brief, charter, product brief, architecture, data model, ADRs, eva
 - English only for v0.1.
 - Single AWS account; region `us-east-1`.
 - Refund HITL threshold = $100 USD.
-- Routing table seeded until milestone 2 policy generator (live eval harness already delivered in v0.1; milestone 2 is routing-policy generation from scorecards).
+- Routing table: offline generate/adopt + DynamoDB publish shipped (milestones
+  v0.2 / ADR-022 / ADR-023); live eval harness already in v0.1.
 - CLI acceptable for supervisor approve in v0.1.
 - Public GitHub repo under `raghuram-chittibomma/supportrouter-aws`.
+- Milestones **v0.2–v0.5** closed; GitHub Release **v0.5.0** is the cumulative
+  tag. Stretch **v0.6 AgentCore / MCP** remains unscoping until filed.
 
 ## Open questions
 
-Resolved for v0.1: account inference profiles (#24) and judge model Claude Haiku 4.5 (#25). Remaining open questions stay on GitHub issues labeled `flag:open-question` (confidence weight tuning, KB chunking refinements, supervisor escalation disposition UX, prompt-cache regional support / measured hit rates).
-
+Resolved for v0.1: account inference profiles (#24) and judge model Claude Haiku 4.5 (#25). Confidence weights (#26) closed. Further refinements (KB chunking, supervisor escalation disposition UX, broader cache hit-rate runs) stay as new issues when prioritized.
 ## How AI agents and MCP tools are used
 
 - **Main Orchestrator** (this Cursor session) coordinates delivery; one code-modifier per slice.
