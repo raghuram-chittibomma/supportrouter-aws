@@ -7,6 +7,46 @@ fictional DTC retailer), built on **AWS Bedrock + LangGraph**, delivered with a
 **Audience:** hiring managers and reviewers who want proof of disciplined AI
 engineering on AWS—not a toy chatbot README.
 
+## Screenshots
+
+**Architecture (AWS path):**
+
+```mermaid
+flowchart LR
+  Client([Client]) --> APIGW[API Gateway<br/>POST /chat]
+  APIGW --> Chat[Chat Lambda<br/>LangGraph]
+
+  Chat --> Bedrock[Bedrock<br/>Converse · Guardrails · KB]
+  Chat --> Tools[Tool Lambdas<br/>order · return · refund]
+  Chat --> DDB[(DynamoDB<br/>Sessions · Approvals · RoutingTable)]
+
+  Bedrock --> S3V[(S3 Vectors)]
+  Tools --> ToolDDB[(Orders · Returns · Refunds)]
+
+  Eval[Eval harness --live] --> Bedrock
+  Eval --> SC[Scorecards]
+  SC --> Gen[Routing policy gen]
+  Gen --> DDB
+
+  Obs[CloudWatch + Budgets] --- Chat
+  Obs --- Bedrock
+
+  AC{{AgentCore Runtime<br/>opt-in}} -.-> Chat
+  GW{{AgentCore Gateway MCP<br/>opt-in}} -.-> Tools
+```
+
+Full 4-diagram set (agent loop, eval→routing, AgentCore stretch):
+[`ARCHITECTURE_AWS_DIAGRAM.md`](docs/01_architecture/ARCHITECTURE_AWS_DIAGRAM.md).
+
+**Thin Gradio UI, driven live against the deployed AWS stacks** (`runtime_mode=aws`
+— Bedrock Converse + tool Lambdas + Knowledge Base; small measured Bedrock cost,
+not a scorecard artifact):
+
+| Customer chat — order status | Supervisor — HITL refund approval |
+|-------------------------------|-------------------------------------|
+| ![Customer chat answering an order-status question via AWS Bedrock](docs/00_project/images/ui-customer-chat-aws.png) | ![Supervisor HITL queue with a pending refund approval over $100](docs/00_project/images/ui-supervisor-hitl-aws.png) |
+| Order-status question answered via Bedrock Converse + tool Lambda. | Refund over $100 auto-routes to `pending_approval`; supervisor sees full session/tool-call detail before approving. |
+
 | Start here | Link |
 |------------|------|
 | **15–20 min demo** (AWS + AI engineering) | [`docs/00_project/DEMO_SCRIPT_AWS_AI.md`](docs/00_project/DEMO_SCRIPT_AWS_AI.md) |
