@@ -25,13 +25,15 @@ Configured in [`.cursor/mcp.json`](.cursor/mcp.json). Project manifest: [`sdlc.p
 
 | Need | MCP call |
 |------|----------|
-| List agents | `list_agents` |
+| List agents | `list_agents` (includes each agent's `permissions.code_modify`/`write_paths`) |
 | Agent role | `get_agent("<id>")` |
-| List skills | `list_skills` |
+| List skills | `list_skills` (includes each skill's `applies_when` tag) |
 | Skill checklist | `get_skill("<id>")` |
 | Project manifest | `get_project_manifest` |
+| Manifest gap check | `validate_manifest` — run after any catalog upgrade |
 | Independent code review | MCP prompt `independent_code_review` |
 | Architecture review | MCP prompt `architecture_review` |
+| Any agent + skill combo | MCP prompt `launch_role("<agent-id>", "<skill-id>,...", "<context>")` |
 
 ### Agents this project uses
 
@@ -45,14 +47,15 @@ Configured in [`.cursor/mcp.json`](.cursor/mcp.json). Project manifest: [`sdlc.p
 | `refactor-reviewer` | Structural/architecture concerns as needed |
 | `documentation-agent` | README, runbook, release notes hygiene |
 | `release-manager` | Release readiness, measured metrics check |
+| `dependency-upgrade-agent` | Available for a deliberate major-version/EOL dependency bump; not yet exercised — this project is in portfolio/ops-polish mode past v0.6.0, not active feature development |
 
 ### Skills this project uses
 
-**Existing catalog:** `requirement-tightening`, `github-backlog-creation`, `github-issue-quality-review`, `architecture-review`, `rag-retrieval-design-review`, `langgraph-workflow-review`, `test-eval-design`, `pr-code-review`, `release-readiness-review`, `readme-runbook-documentation`.
+**Existing catalog:** `requirement-tightening`, `github-backlog-creation`, `github-issue-quality-review`, `architecture-review`, `rag-retrieval-design-review`, `langgraph-workflow-review`, `test-eval-design`, `pr-code-review`, `release-readiness-review`, `readme-runbook-documentation`, `api-contract-review` (API Gateway `POST /chat` contract), `application-security-review`, `dependency-supply-chain-review`, `cicd-pipeline-review`, `incident-postmortem-review`.
 
-**SupportRouter-oriented catalog skills (registered for AWS stack):** `cdk-stack-review`, `iam-least-privilege-review`, `synthetic-data-design`, `eval-scenario-design`, `llm-as-judge-rubric-design`, `bedrock-guardrails-review`, `prompt-caching-review`, `observability-dashboard-review`, `dynamodb-data-model-review`.
+**SupportRouter-oriented catalog skills (registered for AWS stack):** `cdk-stack-review`, `iam-least-privilege-review`, `synthetic-data-design`, `eval-scenario-design`, `llm-as-judge-rubric-design`, `bedrock-guardrails-review`, `prompt-caching-review`, `observability-dashboard-review`, `dynamodb-data-model-review`, `cloud-infra-review` (vendor-neutral infra baseline, applied in addition to — not instead of — `cdk-stack-review`).
 
-Low relevance here: `postgresql-schema-review`, `database-migration-review`, `fastapi-service-review` (prior triage stack).
+Low relevance here: `postgresql-schema-review`, `database-migration-review`, `fastapi-service-review` (prior triage stack, not this project's AWS Lambda/API Gateway edge), `frontend-accessibility-review` (the Gradio UI is a thin, uncustomized demo shell around the AWS agent, not a maintained product UI surface).
 
 ## Where things live
 
@@ -80,6 +83,6 @@ Low relevance here: `postgresql-schema-review`, `database-migration-review`, `fa
 ## Before merging a PR
 
 1. Call `get_agent("code-reviewer")` and `get_skill("pr-code-review")`, or use prompt `independent_code_review`.
-2. Launch a **fresh-context** Code Reviewer subagent with the PR diff.
+2. Launch a **fresh-context** Code Reviewer subagent with the PR diff. `pr-code-review` now requires a Blocker/Major/Minor severity tag and cited file+line evidence per finding, plus an explicit Approve/Request Changes verdict — see the skill itself for the exact output format.
 3. Address or explicitly defer findings; only then merge.
 4. For architecture changes, also run `architecture_review` with the Solution Architect / Refactor Reviewer path.
