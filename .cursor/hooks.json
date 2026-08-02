@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "python .cursor/hooks/pr_merge_gate.py",
+        "matcher": "gh pr merge",
+        "failClosed": false
+      }
+    ]
+  }
+}
