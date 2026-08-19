@@ -4,8 +4,10 @@ Eval-driven AI customer support agent for **VoltEdge Electronics** (fully
 fictional DTC retailer), built on **AWS Bedrock + LangGraph**, delivered with a
 **GitHub-first SDLC** (issues → ADRs → PRs → measured scorecards → releases).
 
-**Audience:** hiring managers and reviewers who want proof of disciplined AI
-engineering on AWS—not a toy chatbot README.
+**What this shows:** a disciplined approach to building a production-style AI
+support agent on AWS — model routing, RAG, tool-calling, guardrails/HITL, and
+an eval-gated delivery process — for engineering and support-operations teams
+evaluating the pattern.
 
 ## Screenshots
 
@@ -50,7 +52,7 @@ not a scorecard artifact):
 | Start here | Link |
 |------------|------|
 | **15–20 min demo** (AWS + AI engineering) | [`docs/00_project/DEMO_SCRIPT_AWS_AI.md`](docs/00_project/DEMO_SCRIPT_AWS_AI.md) |
-| 5–10 min portfolio walkthrough | [`docs/00_project/PORTFOLIO_WALKTHROUGH.md`](docs/00_project/PORTFOLIO_WALKTHROUGH.md) |
+| 5–10 min technical walkthrough | [`docs/00_project/TECHNICAL_WALKTHROUGH.md`](docs/00_project/TECHNICAL_WALKTHROUGH.md) |
 | AWS architecture diagrams (AI + AWS) | [`docs/01_architecture/ARCHITECTURE_AWS_DIAGRAM.md`](docs/01_architecture/ARCHITECTURE_AWS_DIAGRAM.md) |
 | Releases (v0.1 → v0.6) | [GitHub Releases](https://github.com/raghuram-chittibomma/supportrouter-aws/releases) |
 | Agent operating rules | [`AGENTS.md`](AGENTS.md) |
@@ -122,8 +124,8 @@ AgentCore opt-in flags are in
 Shipped through **[v0.6.0](https://github.com/raghuram-chittibomma/supportrouter-aws/releases/tag/v0.6.0)**
 (AgentCore stretch). Prior cumulative platform tag:
 **[v0.5.0](https://github.com/raghuram-chittibomma/supportrouter-aws/releases/tag/v0.5.0)**.
-Planned milestones v0.1–v0.6 are closed on GitHub; further work is portfolio /
-ops polish unless new issues are filed.
+Planned milestones v0.1–v0.6 are closed on GitHub; further work is
+documentation / ops polish unless new issues are filed.
 
 ## Docs map
 
@@ -145,4 +147,4 @@ Runtime/Gateway · pytest + GitHub Actions.
 
 ## License
 
-MIT (portfolio / demo)
+MIT (demo / reference project)

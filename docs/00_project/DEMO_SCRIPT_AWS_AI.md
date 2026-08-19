@@ -1,12 +1,13 @@
 # Demo script — AWS usage + AI engineering (~15–20 min)
 
-**Audience:** hiring managers / AI platform reviewers.  
+**Audience:** engineering leads and platform reviewers evaluating AWS + AI
+engineering patterns.  
 **Prop use case:** VoltEdge customer support (intentionally simple).  
 **Plot:** how an enterprise-shaped AI agent ships on AWS with an eval-gated
 control loop.
 
 Companion skim path (repo audit, less talk track):
-[`PORTFOLIO_WALKTHROUGH.md`](PORTFOLIO_WALKTHROUGH.md).  
+[`TECHNICAL_WALKTHROUGH.md`](TECHNICAL_WALKTHROUGH.md).  
 Diagrams:
 [`ARCHITECTURE_AWS_DIAGRAM.md`](../01_architecture/ARCHITECTURE_AWS_DIAGRAM.md).  
 Ops detail: [`RUNBOOK.md`](../03_operations/RUNBOOK.md).

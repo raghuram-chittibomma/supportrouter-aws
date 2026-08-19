@@ -11,7 +11,6 @@ VoltEdge support volume is dominated by routine order, return, FAQ, and compatib
 | **Maya** (customer) | Resolve order/return/FAQ questions quickly with trustworthy answers |
 | **Jordan** (supervisor) | Approve high-value refunds; inspect escalations with context (escalation disposition follows after v0.1) |
 | **Priya** (platform engineer) | Run evals, understand routing policy, watch cost/latency |
-| **Alex** (hiring manager) | See disciplined SDLC and measured claims in the repo |
 
 ## Core workflows
 

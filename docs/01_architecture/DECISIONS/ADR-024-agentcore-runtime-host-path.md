@@ -17,7 +17,7 @@ AWS AgentCore splits concerns:
 |------------|------------------------|
 | **AgentCore Runtime** | Host the agent container (framework-agnostic; LangGraph supported via `BedrockAgentCoreApp` + `@entrypoint`) |
 | **AgentCore Gateway** | Optional MCP façade over existing Lambda tools |
-| **AgentCore Identity** | Inbound/outbound auth; optional for portfolio SigV4 demos |
+| **AgentCore Identity** | Inbound/outbound auth; optional for local SigV4 demo calls |
 
 Runtime service contract (HTTP): container listens on port **8080**,
 `POST /invocations` (plus health). MCP servers use port **8000** `/mcp` — that

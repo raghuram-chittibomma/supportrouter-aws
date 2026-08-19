@@ -2,7 +2,7 @@
 
 ## Mission
 
-Deliver a portfolio-grade, eval-driven AWS customer support agent for fictional VoltEdge Electronics that demonstrates production disciplines (routing, RAG, tools, guardrails, HITL, observability, IaC) and an AI-assisted GitHub-first SDLC.
+Deliver a production-grade, eval-driven AWS customer support agent for fictional VoltEdge Electronics that demonstrates production disciplines (routing, RAG, tools, guardrails, HITL, observability, IaC) and an AI-assisted GitHub-first SDLC.
 
 ## Success criteria (v0.1)
 
@@ -23,4 +23,4 @@ Synthetic data only · measured metrics only · low AWS cost · least-privilege 
 
 ## Stakeholders
 
-Portfolio author (owner) · fictional VoltEdge support org · hiring-manager audience.
+Solo project owner · fictional VoltEdge support org · engineering reviewers evaluating the SDLC approach.

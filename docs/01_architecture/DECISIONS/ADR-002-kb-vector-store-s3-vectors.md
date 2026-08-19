@@ -6,7 +6,7 @@
 
 ## Context
 
-Bedrock Knowledge Bases can use OpenSearch Serverless, Aurora pgvector, S3 Vectors, and others. OpenSearch Serverless often has a high idle cost floor unsuitable for a low-cost portfolio demo.
+Bedrock Knowledge Bases can use OpenSearch Serverless, Aurora pgvector, S3 Vectors, and others. OpenSearch Serverless often has a high idle cost floor unsuitable for a low-cost demo deployment.
 
 ## Decision
 
