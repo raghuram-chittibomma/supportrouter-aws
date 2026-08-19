@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-SupportRouter runtime and evals are Python (LangGraph, pytest). The team is one person for a portfolio demo. CDK supports TypeScript and Python.
+SupportRouter runtime and evals are Python (LangGraph, pytest). The team is one person building a reference implementation. CDK supports TypeScript and Python.
 
 ## Decision
 

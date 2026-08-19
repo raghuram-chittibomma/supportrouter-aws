@@ -26,7 +26,6 @@ Reduce support cost and response time for VoltEdge by resolving routine tickets 
 | Customer (Maya) | Fast, accurate answers with citations |
 | Support supervisor (Jordan) | Approve refunds above threshold; handle escalations |
 | Platform engineer (Priya) | Operate evals, routing policy, dashboards |
-| Hiring manager (Alex) | Audit portfolio repo for disciplined SDLC + measured claims |
 
 ## v0.1 scope
 
@@ -80,7 +79,7 @@ Every metric claim in README/release notes must be backed by eval pipeline artif
 
 ## Constraints
 
-- Practical for a single-person portfolio/demo; domain logic stays trivial (three tools, one policy corpus); sophistication is in agentic machinery.
+- Practical scope for a single-person build; domain logic stays trivial (three tools, one policy corpus); sophistication is in agentic machinery.
 - Keep AWS costs low; teardown scripts; cost-estimate note every milestone.
 - Least-privilege IAM per Lambda tool.
 - ADR for every significant technical decision; supersede, never rewrite history.

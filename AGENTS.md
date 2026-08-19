@@ -47,7 +47,7 @@ Configured in [`.cursor/mcp.json`](.cursor/mcp.json). Project manifest: [`sdlc.p
 | `refactor-reviewer` | Structural/architecture concerns as needed |
 | `documentation-agent` | README, runbook, release notes hygiene |
 | `release-manager` | Release readiness, measured metrics check |
-| `dependency-upgrade-agent` | Available for a deliberate major-version/EOL dependency bump; not yet exercised — this project is in portfolio/ops-polish mode past v0.6.0, not active feature development |
+| `dependency-upgrade-agent` | Available for a deliberate major-version/EOL dependency bump; not yet exercised — this project is in maintenance/ops-polish mode past v0.6.0, not active feature development |
 
 ### Skills this project uses
 

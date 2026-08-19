@@ -1,6 +1,6 @@
-# Portfolio walkthrough (≈5–10 minutes)
+# Technical walkthrough (≈5–10 minutes)
 
-For **Alex** (hiring manager): how to audit SupportRouter without reading every
+For an engineering reviewer: how to audit SupportRouter without reading every
 PR. Synthetic VoltEdge data only; cite metrics only from linked scorecards.
 
 **Live demo (15–20 min, AWS + AI engineering talk track):** use
